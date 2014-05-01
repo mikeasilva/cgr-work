@@ -16,35 +16,35 @@ data <- data[data$SERIESCODE %in% seriescode.selection, ]
 
 # Recode area
 myarea <- function(x){
-  if(x == 36) 
+  if(x == 000036) 
     return("nys")
-  if(x == 10580) 
+  if(x == 010580) 
     return("alb")
-  if(x == 13780) 
+  if(x == 013780) 
     return("bin")
-  if(x == 15380) 
+  if(x == 015380) 
     return("buf")
-  if(x == 21300) 
+  if(x == 021300) 
     return("elm")
-  if(x == 24020) 
+  if(x == 024020) 
     return("gle")
-  if(x == 27060) 
+  if(x == 027060) 
     return("ith")
-  if(x == 28740) 
+  if(x == 028740) 
     return("kin")
-  if(x == 35004) 
+  if(x == 035004) 
     return("li")
-  if(x == 39100) 
+  if(x == 039100) 
     return("pou")
-  if(x == 40380) 
+  if(x == 040380) 
     return("roc")
-  if(x == 45060) 
+  if(x == 045060) 
     return("syr")
-  if(x == 46540) 
+  if(x == 046540) 
     return("uti")
-  if(x == 93561) 
+  if(x == 093561) 
     return("nyc")
-  if(x == 93562) 
+  if(x == 093562) 
     return("prw")
   else
     return(NA)
@@ -122,25 +122,36 @@ write.csv(nonSA.data, file = "NYS Metro CES nonSA.csv")
 
 # Initialize seasonally adjusted data frame
 sa.df <- data.frame(year=as.Date(character()), month=character(), value=character(), mycode=character()) 
+
+# Change working directory for X-12 output
+setwd("./x12")
 # Get the list of mycode
-mycodes <- c("albehs",  "albfin",  "albgov",  "albinf",	"alblei",	"albman",	"albnmc",	"alboth",	"albpbs",	"albtot",	"albtra",	"albtwu",	"binehs",	"binfin",	"bingov",	"bininf",	"binlei",	"binman",	"binnmc",	"binoth",	"binpbs",	"bintot",	"bintra",	"bintwu",	"bufehs",	"buffin",	"bufgov",	"bufinf",	"buflei",	"bufman",	"bufnmc",	"bufoth",	"bufpbs",	"buftot",	"buftra",	"buftwu",	"elmehs",	"elmfin",	"elmgov",	"elminf",	"elmlei",	"elmman",	"elmnmc",	"elmoth",	"elmpbs",	"elmtot",	"elmtra",	"elmtwu",	"gleehs",	"glefin",	"glegov",	"gleinf",	"glelei",	"gleman",	"glenmc",	"gleoth",	"glepbs",	"gletot",	"gletra",	"gletwu",	"ithehs",	"ithfin",	"ithgov",	"ithinf",	"ithlei",	"ithman",	"ithnmc",	"ithoth",	"ithpbs",	"ithtot",	"ithtra",	"ithtwu",	"kinehs",	"kinfin",	"kingov",	"kininf",	"kinlei",	"kinman",	"kinnmc",	"kinoth",	"kinpbs",	"kintot",	"kintra",	"kintwu",	"liehs",	"lifin",	"ligov",	"liinf",	"lilei",	"liman",	"linmc",	"lioth",	"lipbs",	"litot",	"litra",	"litwu",	"nycehs",	"nycfin",	"nycgov",	"nycinf",	"nyclei",	"nycman",	"nycnmc",	"nycoth",	"nycpbs",	"nyctot",	"nyctra",	"nyctwu",	"nysehs",	"nysfin",	"nysgov",	"nysinf",	"nyslei",	"nysman",	"nysnmc",	"nysoth",	"nyspbs",	"nystot",	"nystra",	"nystwu",	"pouehs",	"poufin",	"pougov",	"pouinf",	"poulei",	"pouman",	"pounmc",	"pouoth",	"poupbs",	"poutot",	"poutra",	"poutwu",	"prwehs",	"prwfin",	"prwgov",	"prwinf",	"prwlei",	"prwman",	"prwnmc",	"prwoth",	"prwpbs",	"prwtot",	"prwtra",	"prwtwu",	"rocehs",	"rocfin",	"rocgov",	"rocinf",	"roclei",	"rocman",	"rocnmc",	"rocoth",	"rocpbs",	"roctot",	"roctra",	"roctwu",	"syrehs",	"syrfin",	"syrgov",	"syrinf",	"syrlei",	"syrman",	"syrnmc",	"syroth",	"syrpbs",	"syrtot",	"syrtra",	"syrtwu",	"utiehs",	"utifin",	"utigov",	"utiinf",	"utilei",	"utiman",	"utinmc",	"utioth",	"utipbs",	"utitot",	"utitra",	"utitwu")
-# Loop through the codes
+mycodes <- c("nystot", "nysman", "nystwu", "nysfin", "nysehs", "nysoth", "nysnmc", "nystra", "nysinf", "nyspbs", "nyslei", "nysgov")
+mycodes <- c("nystot", "nysman", "nystwu", "nysfin", "nysehs", "nysoth", "nysnmc", "nystra", "nysinf", "nyspbs", "nyslei", "nysgov", "roctot", "rocman", "roctwu", "rocfin", "rocehs", "rocoth", "rocnmc", "roctra", "rocpbs", "rocinf", "roclei", "rocgov", "albtot", "albman", "albtwu", "albfin", "albehs", "alboth", "albnmc", "albtra", "albpbs", "albinf", "alblei", "albgov", "bintot", "binman", "bintwu", "binfin", "binehs", "binoth", "binnmc", "bintra", "binpbs", "bininf", "binlei", "bingov", "buftot", "bufman", "buftwu", "buffin", "bufehs", "bufoth", "bufnmc", "buftra", "bufpbs", "bufinf", "buflei", "bufgov", "poutot", "pouman", "poutwu", "poufin", "pouehs", "pouoth", "pounmc", "poutra", "poupbs", "pouinf", "poulei", "pougov", "gletot", "gleman", "gletwu", "glefin", "gleehs", "gleoth", "glenmc", "gletra", "glepbs", "gleinf", "glelei", "glegov", "litot", "liman", "litwu", "lifin", "liehs", "lioth", "linmc", "litra", "lipbs", "liinf", "lilei", "ligov", "nyctot", "nycman", "nyctwu", "nycfin", "nycehs", "nycoth", "nycnmc", "nyctra", "nycpbs", "nycinf", "nyclei", "nycgov", "syrtot", "syrman", "syrtwu", "syrfin", "syrehs", "syroth", "syrnmc", "syrtra", "syrpbs", "syrinf", "syrlei", "syrgov", "utitot", "utiman", "utitwu", "utifin", "utiehs", "utioth", "utinmc", "utitra", "utipbs", "utiinf", "utilei", "utigov", "prwtot", "prwman", "prwtwu", "prwfin", "prwehs", "prwoth", "prwnmc", "prwtra", "prwpbs", "prwinf", "prwlei", "prwgov", "ithtot", "ithman", "ithtwu", "ithfin", "ithehs", "ithoth", "ithnmc", "ithtra", "ithpbs", "ithinf", "ithlei", "ithgov", "kintot", "kinman", "kintwu", "kinfin", "kinehs", "kinoth", "kinnmc", "kintra", "kinpbs", "kininf", "kinlei", "kingov", "elmtot", "elmman", "elmtwu", "elmfin", "elmehs", "elmoth", "elmnmc", "elmtra", "elmpbs", "elminf", "elmlei", "elmgov")
+x12.batch.data = list()
 for (i in 1:length(mycodes)) {
   # X-12-ARIMA loop
   temp.data <- mdata[ which(mdata$mycode==mycodes[i]), ]
   min.year <- min(temp.data$year)
+  max.date <- max(temp.data$mydate)
   # Get the employment time series
   employ<-ts(temp.data$value,frequency=12,start(min.year,1))
-  # Apply the X-12 seasonal adjustment
-  x12.employ <- x12(employ)
+  index <- mycodes[i]  
+  x12.batch.data <- c(x12.batch.data, list(employ))
+
+  #x12.employ <- x12(employ)
   # Get the seasonally adjusted varriable
-  sa.employ <- x12.employ@d11
-  sa <- tapply(sa.employ, list(year = floor(time(sa.employ)), month = month.abb[cycle(sa.employ)]), c)
-  mdata2 <- melt(sa, id = c("year"), variable.name = "month", na.rm=TRUE)
-  mdata2$year <- mdata2$year + min.year - 1
-  mdata2$mycode <- mycodes[i]
-  sa.df <- rbind(sa.df, mdata2)
+  #sa.employ <- x12.employ@d11
+  #sa <- tapply(sa.employ, list(year = floor(time(sa.employ)), month = month.abb[cycle(sa.employ)]), c)
+  #mdata2 <- melt(sa, id = c("year"), variable.name = "month", na.rm=TRUE)
+  #mdata2$year <- mdata2$year + min.year - 1
+  #mdata2$mycode <- mycodes[i]
+  #sa.df <- rbind(sa.df, mdata2)
 }
+
+# Apply the X-12 seasonal adjustment
+xb <- new("x12Batch", x12.batch.data, mycodes)
+xb <- x12(xb)
 
 # Recode month
 sa.df$month <- match(sa.df$month, month.abb)
