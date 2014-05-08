@@ -1,11 +1,20 @@
 library(ggmap)
 
+#api.key <- 'google api key'
+
 data <- read.csv('~/zips2.csv', colClasses = "character")
 
 # This function returns a vector that contains geocoded data
-geocodeMe <- function(address){
+geocodeMe <- function(address, api.key = FALSE){
   # Make the request
-  geo_reply = geocode(address, output='all', messaging=TRUE, override_limit=TRUE)
+  if(api.key == FALSE){
+    geo_reply = geocode(address, output='all', messaging=TRUE, override_limit=TRUE)
+  } else {
+    require(rjson)
+    url <- paste0("https://maps.googleapis.com/maps/api/geocode/json?address=",address,"&sensor=false&key=",api.key)
+    geo_reply <- fromJSON(file=url, method='C')
+    message("done.")
+  }
   
   # initialize return varriables
   location.type <- lat <- lng <- formatted.address <- administrative.area.level.1 <- administrative.area.level.2 <- administrative.area.level.3 <- NA
@@ -70,10 +79,10 @@ geocoded <- data.frame("Address" = as.character(),
 # Loop through the addresses
 for (i in seq(1, length(addresses))){
   # Display the progress
-  message(i," of ",length(addresses),">", appendLF = FALSE)
+  message("Geocode request number ",i," of ",length(addresses),"...", appendLF = FALSE)
   
   # Get the gecoded info
-  result <- geocodeMe(addresses[i])
+  result <- geocodeMe(addresses[i], api.key)
   
   # Append it to the data frame
   geocoded <- insertRow(geocoded, result, i)
