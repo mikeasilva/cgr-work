@@ -26,13 +26,6 @@ initialize.positions <- function(staff){
   positions
 }
 
-update.positions <- function(positions){ i
-for(j in i:projection.years){
-    positions[i] <- positions[i-1]
-  }
-  positions
-}
-
 fix.years.of.experience <- function(years.of.experience){
   for(i in 1:ncol(years.of.experience)){
     years.of.experience[,i] <- as.numeric(years.of.experience[,i])
@@ -53,7 +46,8 @@ retire <- function(positions, years.of.experience, retirement.threshold, force.s
       positions[,i] <- positions[,i-1]
     }
     # Determine which positions have a person retiring
-    positions.needing.replacement <- as.data.frame(positions[retiring[,i],i])
+    positions.needing.replacement <- positions[retiring[,i],i]
+    #positions.needing.replacement <- as.data.frame(positions[retiring[,i],i])
     positions[retiring[,i],i] <- "retired"
     
     # Determine how many positions need to be replaced
@@ -65,14 +59,65 @@ retire <- function(positions, years.of.experience, retirement.threshold, force.s
       years.of.experience <- temp$years.of.experience
     }
     
-    # Replace the retired officers
+    # Promote to replace the retired officers
+    positions.to.replace <- as.data.frame(table(positions.needing.replacement))
     
+    if(nrow(positions.to.replace) > 0){
+      positions.to.replace <- sort.positions.to.replace(positions.to.replace)
+    }
     # Code Here
-      
+    temp <- replace.staff(positions, years.of.experience, positions.to.replace, i)
+    positions <- temp$positions
+    years.of.experience <- temp$years.of.experience 
   }
   
   #years.of.experience <- years.of.experience + 1
   list(positions=positions, years.of.experience=years.of.experience)
+}
+
+replace.staff <- function(positions, years.of.experience, positions.to.replace, i){
+  
+  for(k in 1:nrow(positions.to.replace)){
+    promote.to <- as.character(positions.to.replace[k,1]) # Position to promote to
+    promotion.times <- positions.to.replace[k,2] # How many times you need to find a person
+    
+    candidate.pool <- list(id = positions[,1], position = positions[,i], years.of.experience = years.of.experience[,i])
+    # Rules for replacement
+    # Sergeant & Detective & Traffic Cop = police officer with highest years of experience
+    # Sergeant Detective = dective with highest years of experience 
+    if(promote.to == "sergeant"){
+      y <- max(candidate.pool$years.of.experience[(candidate.pool$position == "police.officer" | candidate.pool$position == "police.officer.traffic") & candidate.pool$years.of.experience < retirement.threshold])
+      id <- min(candidate.pool$id[(candidate.pool$position == "police.officer" | candidate.pool$position == "police.officer.traffic") & candidate.pool$years.of.experience == y])
+    }
+    else if(promote.to == "sergeant.detective"){
+      y <- max(candidate.pool$years.of.experience[candidate.pool$position == "detective" & candidate.pool$years.of.experience < retirement.threshold])
+      id <- min(candidate.pool$id[candidate.pool$position == "detective" & candidate.pool$years.of.experience == y])
+    }
+    else if(promote.to == "detective"){
+      y <- max(candidate.pool$years.of.experience[(candidate.pool$position == "police.officer" | candidate.pool$position == "police.officer.traffic") & candidate.pool$years.of.experience < retirement.threshold])
+      id <- min(candidate.pool$id[(candidate.pool$position == "police.officer" | candidate.pool$position == "police.officer.traffic") & candidate.pool$years.of.experience == y])
+    }
+    else if(promote.to == "police.officer.traffic"){
+      y <- max(candidate.pool$years.of.experience[candidate.pool$position == "police.officer" & candidate.pool$years.of.experience < retirement.threshold])
+      id <- min(candidate.pool$id[candidate.pool$position == "police.officer" & candidate.pool$years.of.experience == y])
+    }
+   
+    # Get current position
+    current.position <- positions[id, i]
+    # Promote the person
+    positions[id, i] <- promote.to
+    # Drop the count by 1
+    positions.to.replace[k,2] <- positions.to.replace[k,2] - 1
+    # Add their position to the list
+    if(current.position != "police.officer"){
+      # Check to see if it is in the list
+      in.list <- positions.to.replace[,1] %in% current.position
+      if(nrow(positions.to.replace[in.list,]) > 0){
+        
+      }
+    }
+    
+  }
 }
 
 add.staff <- function(positions.to.add, positions, years.of.experience, i){
@@ -108,4 +153,20 @@ years.of.experience <- fix.years.of.experience(years.of.experience)
 
 # Return the data frame
 list(positions=positions, years.of.experience=years.of.experience)
+}
+
+function sort.positions.to.replace(positions.to.replace){
+  # Let's check the table for promotable positions
+  promotable.positions <- c("sergeant","sergeant.detective","detective","police.officer.traffic")
+  positions.to.replace <- positions.to.replace[positions.to.replace$positions.needing.replacement %in% promotable.positions,]
+  sort.order<- list(position = promotable.positions,
+                    order = 1:length(promotable.positions))
+  
+  positions.to.replace$sort.order <- apply(positions.to.replace, 1, function(x) {
+    sort.order$order[sort.order$position == x[1]]
+  })
+  
+  positions.to.replace <- positions.to.replace[order(positions.to.replace$sort.order), ]
+  return(positions.to.replace)
+  
 }
