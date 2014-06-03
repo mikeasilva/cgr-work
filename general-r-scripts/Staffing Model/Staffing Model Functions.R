@@ -101,9 +101,9 @@ replace.staff <- function(positions, years.of.experience, positions.to.replace, 
       }
    
       # Get current position
-      current.position <- positions[id, i]
+      current.position <- positions[which(positions$id == id), i]
       # Promote the person
-      positions[id, i] <- promote.to
+      positions[which(positions$id == id), i] <- promote.to
       # Drop the count by 1
       positions.to.replace[k,2] <- positions.to.replace[k,2] - 1
       # Add their position to the list
@@ -186,4 +186,53 @@ sort.positions.to.replace <- function(positions.to.replace){
   positions.to.replace <- positions.to.replace[order(positions.to.replace$sort.order), ]
   return(positions.to.replace)
   
+}
+
+get.cost <- function(position, year, cost, column){
+  if(position=="N/A" || position == "retired"){
+    return(0)
+  }else {
+    return(cost[cost$position == position & cost$years.of.service == year, column+1])
+  }
+}
+
+get.total.cost.table <- function(positions, years.of.experience, cost.table){
+  # Create a data frame to hold the costs
+  ncols <- ncol(positions)
+  nrows <- nrow(positions)
+  dummy.data <- rep(1.0000000000, (ncols - 1) * nrows)
+  temp <- as.data.frame(matrix(dummy.data, nrows))
+  total.costs <- cbind(positions[,1], temp)
+  rm(temp)
+  names(total.costs) <- names(positions)
+  
+  for(col in 2:ncols){
+    for(row in 1:nrows){
+      position <- positions[row, col]
+      year <- years.of.experience[row, col]
+      total.costs[row,col] <- get.cost(position, year, cost.table, col)
+    }
+  }
+  return(total.costs)
+}
+
+get.cost.summaries <- function(low.costs, mid.costs, high.costs){
+  # Sumarize
+  low <- colSums(low.costs)
+  mid <- colSums(mid.costs)
+  high <- colSums(high.costs)
+  
+  data <- as.data.frame(t(data.frame(Low = low, Mid = mid, High = high)))
+  keep <- names(data) %in% c("id") 
+  return(data[!keep])
+}
+
+get.line.chart <- function(data, names, title){
+  library(reshape2, ggplot2)
+  names(data) <- names
+  data$Estimate <- row.names(data)
+  melted.data <- melt(data, id.vars="Estimate", value.name="Cost", variable.name="Year")
+  melted.data$Cost <- melted.data$Cost / 1000000
+  ggplot(data=melted.data, aes(x=Year, y=Cost, group = Estimate, colour = Estimate)) +
+    geom_line() + ggtitle(title)
 }
