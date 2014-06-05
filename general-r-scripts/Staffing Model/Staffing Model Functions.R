@@ -228,11 +228,10 @@ get.cost.summaries <- function(low.costs, mid.costs, high.costs){
 }
 
 get.line.chart <- function(data, names, title){
-  library(reshape2, ggplot2)
   names(data) <- names
   data$Estimate <- row.names(data)
   melted.data <- melt(data, id.vars="Estimate", value.name="Cost", variable.name="Year")
   melted.data$Cost <- melted.data$Cost / 1000000
   ggplot(data=melted.data, aes(x=Year, y=Cost, group = Estimate, colour = Estimate)) +
-    geom_line() + ggtitle(title)
+    geom_line() + ggtitle(title) + ylab("Costs (millions of dollars)")
 }
