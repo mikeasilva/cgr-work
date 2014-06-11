@@ -122,14 +122,6 @@ if(leave.no.trace){
 # force, let's estimate the costs
 ###############################################################################
 
-wego.low.total.costs <- get.total.cost.table(positions, years.of.experience, wego.low)
-wego.mid.total.costs <- get.total.cost.table(positions, years.of.experience, wego.mid)
-wego.high.total.costs <- get.total.cost.table(positions, years.of.experience, wego.high)
-
-wgpd.low.total.costs <- get.total.cost.table(positions, years.of.experience, wgpd.low)
-wgpd.mid.total.costs <- get.total.cost.table(positions, years.of.experience, wgpd.mid)
-wgpd.high.total.costs <- get.total.cost.table(positions, years.of.experience, wgpd.high)
-
 wego.status.quo.low.total.costs <- get.total.cost.table(wego.positions, wego.years.of.experience, wego.low)
 wego.status.quo.mid.total.costs <- get.total.cost.table(wego.positions, wego.years.of.experience, wego.mid)
 wego.status.quo.high.total.costs <- get.total.cost.table(wego.positions, wego.years.of.experience, wego.high)
@@ -141,7 +133,6 @@ wgpd.status.quo.high.total.costs <- get.total.cost.table(wgpd.positions, wgpd.ye
 status.quo.low.total.costs <- rbind(wego.status.quo.low.total.costs, wgpd.status.quo.low.total.costs)
 status.quo.mid.total.costs <- rbind(wego.status.quo.mid.total.costs, wgpd.status.quo.mid.total.costs)
 status.quo.high.total.costs <- rbind(wego.status.quo.high.total.costs, wgpd.status.quo.high.total.costs)
-
 
 wego.plus.5.low.total.costs <- get.total.cost.table(positions.plus.5, years.of.experience.plus.5, wego.low)
 wego.plus.5.mid.total.costs <- get.total.cost.table(positions.plus.5, years.of.experience.plus.5, wego.mid)
@@ -191,6 +182,14 @@ status.quo <- get.cost.summaries(status.quo.low.total.costs,
                                  status.quo.mid.total.costs,
                                  status.quo.high.total.costs)
 
+wego.status.quo <- get.cost.summaries(wego.status.quo.low.total.costs,
+                                      wego.status.quo.mid.total.costs,
+                                      wego.status.quo.high.total.costs)
+
+wgpd.status.quo <- get.cost.summaries(wgpd.status.quo.low.total.costs,
+                                      wgpd.status.quo.mid.total.costs,
+                                      wgpd.status.quo.high.total.costs)
+
 wego.contract <- get.cost.summaries(wego.low.total.costs,
                                     wego.mid.total.costs,
                                     wego.high.total.costs)
@@ -224,6 +223,9 @@ library(reshape2)
 library(ggplot2)
 
 status.quo.plot <- get.line.chart(status.quo, x, "Status Quo Model")
+wego.status.quo.plot <- get.line.chart(wego.status.quo, x, "Status Quo Model - WEGO")
+wgpd.status.quo.plot <- get.line.chart(wgpd.status.quo, x, "Status Quo Model - WGPD")
+
 wego.contract.plot <- get.line.chart(wego.contract, x, "47 Person Police Force - WEGO Contract")
 wgpd.contract.plot <- get.line.chart(wgpd.contract, x, "47 Person Police Force - WGPD Contract")
 wego.plus.5.contract.plot <- get.line.chart(wego.plus.5.contract, x, "52 Person Police Force - WEGO Contract")
@@ -234,6 +236,8 @@ wgpd.minus.12.contract.plot <- get.line.chart(wgpd.minus.12.contract, x, "35 Per
 path <- "G:/2014 Projects/412-East Goshen and WEGO Police Consolidation/data analysis/cost projections/"
 
 ggsave(filename=paste0(path,"status quo.png"), plot=status.quo.plot)
+ggsave(filename=paste0(path,"wego status quo.png"), plot=wego.status.quo.plot)
+ggsave(filename=paste0(path,"wgpd status quo.png"), plot=wgpd.status.quo.plot)
 ggsave(filename=paste0(path,"47 person wego contract.png"), plot=wego.contract.plot)
 ggsave(filename=paste0(path,"47 person wgpd contract.png"), plot=wgpd.contract.plot)
 ggsave(filename=paste0(path,"52 person wego contract.png"), plot=wego.plus.5.contract.plot)
@@ -250,6 +254,16 @@ wb <- createWorkbook()
 sheet <- createSheet(wb, sheetName="status.quo")
 addDataFrame(status.quo, sheet)  
 saveWorkbook(wb, paste0(path,"status quo.xlsx"))
+
+wb <- createWorkbook()
+sheet <- createSheet(wb, sheetName="wego.status.quo")
+addDataFrame(wego.status.quo, sheet)  
+saveWorkbook(wb, paste0(path,"wego status quo.xlsx"))
+
+wb <- createWorkbook()
+sheet <- createSheet(wb, sheetName="wgpd.status.quo")
+addDataFrame(wgpd.status.quo, sheet)  
+saveWorkbook(wb, paste0(path,"wgpd status quo.xlsx"))
              
 wb <- createWorkbook()
 sheet <- createSheet(wb, sheetName="47.wego.contract")

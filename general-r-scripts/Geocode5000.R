@@ -11,9 +11,19 @@ geocode5000 <- function(address.vector, api.key = FALSE){
   } else {
     use.api.key <- TRUE
   }
+  start.index = 1
   
-  # Initialize the data frame that will hold the geocoded info
-  geocoded <- data.frame("Address" = as.character(), 
+  # Initialize the tempfile
+  tempfilename <- 'geocoded.rds'
+  if (file.exists(tempfilename)){
+    print("Found temp file - resuming from index:")
+    geocoded <- readRDS(tempfilename)
+    start.index <- nrow(geocoded)
+    print(start.index)
+  }
+  else{
+    # Initialize the data frame that will hold the geocoded info
+    geocoded <- data.frame("Address" = as.character(), 
                          "Status" = as.character(), 
                          "Location Type" = as.character(), 
                          "Lat" = as.character(), 
@@ -21,9 +31,10 @@ geocode5000 <- function(address.vector, api.key = FALSE){
                          "Formatted Address" = as.character(),
                          "Level 1" = as.character(), 
                          "Level 2" = as.character(), 
-                         "Level 3" = as.character(), 
+                         "Level 3" = as.character(),
+                         "Accuracy" = as.character(),
                          stringsAsFactors=FALSE)
-  
+  }
   # This function helps insert rows into the geocoded data frame
   insertRow <- function(existing.data.frame, new.row, row) {
     existing.data.frame[seq(row+1,nrow(existing.data.frame)+1),] <- existing.data.frame[seq(row,nrow(existing.data.frame)),]
@@ -35,16 +46,16 @@ geocode5000 <- function(address.vector, api.key = FALSE){
   geocodeMe <- function(address){
     # Make the request
     if(use.api.key == FALSE){
-      require(ggmap)
-      geo_reply = geocode(address, output='none', messaging=FALSE, override_limit=TRUE)
+      library(ggmap)
+      geo_reply = geocode(address, output="all", override_limit=TRUE)
     } else {
-      require(rjson)
+      library(rjson)
       url <- paste0("https://maps.googleapis.com/maps/api/geocode/json?address=",address,"&sensor=false&key=",api.key)
       geo_reply <- fromJSON(file=url, method='C')
     }
     
     # initialize return varriables
-    location.type <- lat <- lng <- formatted.address <- administrative.area.level.1 <- administrative.area.level.2 <- administrative.area.level.3 <- NA
+    location.type <- lat <- lng <- formatted.address <- administrative.area.level.1 <- administrative.area.level.2 <- administrative.area.level.3 <- accuracy <- NA
     status <- geo_reply$status
     
     if(status == "OVER_QUERY_LIMIT"){
@@ -68,7 +79,9 @@ geocode5000 <- function(address.vector, api.key = FALSE){
       # Get lat & lng
       location.type <- geo_reply$results[[1]]$geometry$location_type
       lat <- geo_reply$results[[1]]$geometry$location$lat
-      lng <- geo_reply$results[[1]]$geometry$location$lat
+      lng <- geo_reply$results[[1]]$geometry$location$lng
+      
+      accuracy <- tryCatch(geo_reply$results[[1]]$types[[1]], error=function(e) NA)
       
       # Loop through the address components
       ac <- geo_reply$results[[1]]$address_components
@@ -86,7 +99,7 @@ geocode5000 <- function(address.vector, api.key = FALSE){
     }
     
     # Return the data a vector
-    return(c(address, status, location.type, lat, lng, formatted.address, administrative.area.level.1, administrative.area.level.2, administrative.area.level.3))  
+    return(c(address, status, location.type, lat, lng, formatted.address, administrative.area.level.1, administrative.area.level.2, administrative.area.level.3, accuracy))  
   }
   
   total <- length(address.vector)
@@ -101,7 +114,7 @@ geocode5000 <- function(address.vector, api.key = FALSE){
   pb <- txtProgressBar(min = 0, max = total, style = 3)
   
   # Loop through the addresses
-  for (i in seq(1, total)){
+  for (i in seq(start.index, total)){
     #message("Geocode request number ",i," of ",total,"...", appendLF = FALSE)
     
     # Get the gecoded info
@@ -109,6 +122,9 @@ geocode5000 <- function(address.vector, api.key = FALSE){
     
     # Append it to the data frame
     geocoded <- insertRow(geocoded, result, i)
+    
+    # Save it to the temp files
+    saveRDS(geocoded, tempfilename)
     
     # Display the progress
     setTxtProgressBar(pb, i)
