@@ -36,8 +36,8 @@ geocode5000 <- function(address.vector, api.key = FALSE){
                          stringsAsFactors=FALSE)
   }
   # This function helps insert rows into the geocoded data frame
+  # Source: http://stackoverflow.com/questions/11561856/add-new-row-to-dataframe
   insertRow <- function(existing.data.frame, new.row, row) {
-    existing.data.frame[seq(row+1,nrow(existing.data.frame)+1),] <- existing.data.frame[seq(row,nrow(existing.data.frame)),]
     existing.data.frame[row,] <- new.row
     existing.data.frame
   }

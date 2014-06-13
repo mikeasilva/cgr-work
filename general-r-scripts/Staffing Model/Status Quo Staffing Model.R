@@ -222,9 +222,9 @@ x <- base.year:(base.year + ncol(status.quo) - 1)
 library(reshape2)
 library(ggplot2)
 
-status.quo.plot <- get.line.chart(status.quo, x, "Status Quo Model")
-wego.status.quo.plot <- get.line.chart(wego.status.quo, x, "Status Quo Model - WEGO")
-wgpd.status.quo.plot <- get.line.chart(wgpd.status.quo, x, "Status Quo Model - WGPD")
+status.quo.plot <- get.line.chart(status.quo, x, "Department Cost Combined")
+wego.status.quo.plot <- get.line.chart(wego.status.quo, x, "Department Cost - WEGO")
+wgpd.status.quo.plot <- get.line.chart(wgpd.status.quo, x, "Department Cost - WGPD")
 
 wego.contract.plot <- get.line.chart(wego.contract, x, "47 Person Police Force - WEGO Contract")
 wgpd.contract.plot <- get.line.chart(wgpd.contract, x, "47 Person Police Force - WGPD Contract")
