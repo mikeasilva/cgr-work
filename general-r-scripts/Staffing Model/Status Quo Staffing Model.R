@@ -61,7 +61,6 @@ years.of.experience <- get.years.of.experience(police.force)
 wego.years.of.experience <- get.years.of.experience(wego)
 wgpd.years.of.experience <- get.years.of.experience(wgpd)
 
-
 ###############################################################################
 # Model changes to the police force
 ###############################################################################
@@ -72,7 +71,8 @@ wego.force.size <- nrow(wego)
 wgpd.force.size <- nrow(wgpd)
 plus.5 <- force.size + 5
 minus.12 <- force.size - 12
-
+plus.7 <- force.size + 7
+minus.11 <- force.size - 11
 # Model retirement replacement
 retirement.threshold <- retirement
 
@@ -83,6 +83,14 @@ years.of.experience.plus.5 <- temp.plus.5$years.of.experience
 temp.minus.12 <- retire(positions, years.of.experience, retirement.threshold, minus.12)
 positions.minus.12 <- temp.minus.12$positions
 years.of.experience.minus.12 <- temp.minus.12$years.of.experience
+
+temp <- retire(positions, years.of.experience, retirement.threshold, plus.7)
+positions.plus.7 <- temp$positions
+years.of.experience.plus.7 <- temp$years.of.experience
+
+temp <- retire(positions, years.of.experience, retirement.threshold, minus.11)
+positions.minus.11 <- temp$positions
+years.of.experience.minus.11 <- temp$years.of.experience
 
 temp <- retire(positions, years.of.experience, retirement.threshold, force.size)
 positions <- temp$positions
@@ -104,6 +112,8 @@ if(leave.no.trace){
   rm(temp)
   rm(temp.plus.5)
   rm(temp.minus.12)
+  rm(temp.plus.7)
+  rm(temp.minus.11)
   rm(projection.years)
   # Remove Value
   rm(force.size)
@@ -149,6 +159,30 @@ wego.minus.12.high.total.costs <- get.total.cost.table(positions.minus.12, years
 wgpd.minus.12.low.total.costs <- get.total.cost.table(positions.minus.12, years.of.experience.minus.12, wgpd.low)
 wgpd.minus.12.mid.total.costs <- get.total.cost.table(positions.minus.12, years.of.experience.minus.12, wgpd.mid)
 wgpd.minus.12.high.total.costs <- get.total.cost.table(positions.minus.12, years.of.experience.minus.12, wgpd.high)
+
+wego.plus.7.low.total.costs <- get.total.cost.table(positions.plus.7, years.of.experience.plus.7, wego.low)
+wego.plus.7.mid.total.costs <- get.total.cost.table(positions.plus.7, years.of.experience.plus.7, wego.mid)
+wego.plus.7.high.total.costs <- get.total.cost.table(positions.plus.7, years.of.experience.plus.7, wego.high)
+
+wgpd.plus.7.low.total.costs <- get.total.cost.table(positions.plus.7, years.of.experience.plus.7, wgpd.low)
+wgpd.plus.7.mid.total.costs <- get.total.cost.table(positions.plus.7, years.of.experience.plus.7, wgpd.mid)
+wgpd.plus.7.high.total.costs <- get.total.cost.table(positions.plus.7, years.of.experience.plus.7, wgpd.high)
+
+wego.minus.11.low.total.costs <- get.total.cost.table(positions.minus.11, years.of.experience.minus.11, wego.low)
+wego.minus.11.mid.total.costs <- get.total.cost.table(positions.minus.11, years.of.experience.minus.11, wego.mid)
+wego.minus.11.high.total.costs <- get.total.cost.table(positions.minus.11, years.of.experience.minus.11, wego.high)
+
+wgpd.minus.11.low.total.costs <- get.total.cost.table(positions.minus.11, years.of.experience.minus.11, wgpd.low)
+wgpd.minus.11.mid.total.costs <- get.total.cost.table(positions.minus.11, years.of.experience.minus.11, wgpd.mid)
+wgpd.minus.11.high.total.costs <- get.total.cost.table(positions.minus.11, years.of.experience.minus.11, wgpd.high)
+
+wgpd.low.total.costs <- get.total.cost.table(positions, years.of.experience, wgpd.low)
+wgpd.mid.total.costs <- get.total.cost.table(positions, years.of.experience, wgpd.mid)
+wgpd.high.total.costs <- get.total.cost.table(positions, years.of.experience, wgpd.high)
+
+wego.low.total.costs <- get.total.cost.table(positions, years.of.experience, wego.low)
+wego.mid.total.costs <- get.total.cost.table(positions, years.of.experience, wego.mid)
+wego.high.total.costs <- get.total.cost.table(positions, years.of.experience, wego.high)
 
 if(leave.no.trace){
   # Remove data
@@ -213,6 +247,22 @@ wego.minus.12.contract <- get.cost.summaries(wego.minus.12.low.total.costs,
 wgpd.minus.12.contract <- get.cost.summaries(wgpd.minus.12.low.total.costs,
                                              wgpd.minus.12.mid.total.costs,
                                              wgpd.minus.12.high.total.costs)
+
+wego.plus.7.contract <- get.cost.summaries(wego.plus.7.low.total.costs,
+                                           wego.plus.7.mid.total.costs,
+                                           wego.plus.7.high.total.costs)
+
+wgpd.plus.7.contract <- get.cost.summaries(wgpd.plus.7.low.total.costs,
+                                           wgpd.plus.7.mid.total.costs,
+                                           wgpd.plus.7.high.total.costs)
+
+wego.minus.11.contract <- get.cost.summaries(wego.minus.11.low.total.costs,
+                                             wego.minus.11.mid.total.costs,
+                                             wego.minus.11.high.total.costs)
+
+wgpd.minus.11.contract <- get.cost.summaries(wgpd.minus.11.low.total.costs,
+                                             wgpd.minus.11.mid.total.costs,
+                                             wgpd.minus.11.high.total.costs)
 ###############################################################################
 # Drawing and Saving Line Charts
 ###############################################################################
@@ -232,6 +282,10 @@ wego.plus.5.contract.plot <- get.line.chart(wego.plus.5.contract, x, "52 Person 
 wgpd.plus.5.contract.plot <- get.line.chart(wgpd.plus.5.contract, x, "52 Person Police Force  - WGPD Contract")
 wego.minus.12.contract.plot <- get.line.chart(wego.minus.12.contract, x, "35 Person Police Force - WEGO Contract")
 wgpd.minus.12.contract.plot <- get.line.chart(wgpd.minus.12.contract, x, "35 Person Police Force  - WGPD Contract")
+wego.plus.7.contract.plot <- get.line.chart(wego.plus.7.contract, x, "54 Person Police Force - WEGO Contract")
+wgpd.plus.7.contract.plot <- get.line.chart(wgpd.plus.7.contract, x, "54 Person Police Force  - WGPD Contract")
+wego.minus.11.contract.plot <- get.line.chart(wego.minus.11.contract, x, "36 Person Police Force - WEGO Contract")
+wgpd.minus.11.contract.plot <- get.line.chart(wgpd.minus.11.contract, x, "36 Person Police Force  - WGPD Contract")
 
 path <- "G:/2014 Projects/412-East Goshen and WEGO Police Consolidation/data analysis/cost projections/"
 
@@ -244,6 +298,10 @@ ggsave(filename=paste0(path,"52 person wego contract.png"), plot=wego.plus.5.con
 ggsave(filename=paste0(path,"52 person wgpd contract.png"), plot=wgpd.plus.5.contract.plot)
 ggsave(filename=paste0(path,"35 person wego contract.png"), plot=wego.minus.12.contract.plot)
 ggsave(filename=paste0(path,"35 person wgpd contract.png"), plot=wgpd.minus.12.contract.plot)
+ggsave(filename=paste0(path,"54 person wego contract.png"), plot=wego.plus.7.contract.plot)
+ggsave(filename=paste0(path,"54 person wgpd contract.png"), plot=wgpd.plus.7.contract.plot)
+ggsave(filename=paste0(path,"36 person wego contract.png"), plot=wego.minus.11.contract.plot)
+ggsave(filename=paste0(path,"36 person wgpd contract.png"), plot=wgpd.minus.11.contract.plot)
 
 ###############################################################################
 # Export data to XLSX file
@@ -294,3 +352,23 @@ wb <- createWorkbook()
 sheet <- createSheet(wb, sheetName="35.wgpd.contract")
 addDataFrame(wgpd.minus.12.contract, sheet)
 saveWorkbook(wb, paste0(path,"35 person wgpd contract.xlsx"))
+
+wb <- createWorkbook()
+sheet <- createSheet(wb, sheetName="54.wego.contract")
+addDataFrame(wego.plus.7.contract, sheet)
+saveWorkbook(wb, paste0(path,"54 person wego contract.xlsx"))
+
+wb <- createWorkbook()
+sheet <- createSheet(wb, sheetName="54.wgpd.contract")
+addDataFrame(wgpd.plus.7.contract, sheet)
+saveWorkbook(wb, paste0(path,"54 person wgpd contract.xlsx"))
+
+wb <- createWorkbook()
+sheet <- createSheet(wb, sheetName="36.wego.contract")
+addDataFrame(wego.minus.11.contract, sheet)
+saveWorkbook(wb, paste0(path,"36 person wego contract.xlsx"))
+
+wb <- createWorkbook()
+sheet <- createSheet(wb, sheetName="36.wgpd.contract")
+addDataFrame(wgpd.minus.11.contract, sheet)
+saveWorkbook(wb, paste0(path,"36 person wgpd contract.xlsx"))
