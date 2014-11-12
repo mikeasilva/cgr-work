@@ -5,10 +5,6 @@ library(rjson)
 CensusAPI <- function(url, char.col=NA){
   ## Request the data
   data <- fromJSON(file=url, method='C')
-  ## Check to see if formJSON worked
-  if(typeof(data)!= 'list'){
-    print('error')
-  }
   ## Convert List to Data Frame
   data <- data.frame(matrix(unlist(data), nrow=length(data), byrow=T))
   ## Convert factors to characters
@@ -41,6 +37,12 @@ fipsCleaner <- function(fips.codes, size){
   }
   return(fips.codes)
 }
+
+## This function is used to calculated MOE's on aggregated ACS data
+aggregateMOE <- function(moe.vector){
+  sqrt(sum((moe.vector)^2))
+}
+
 
 ## Size filter
 size.filter <- 100000
@@ -162,7 +164,7 @@ sf3.1990 <- CensusAPI(url, c('LOGRECPN','ANPSADPI', 'state', 'place'))
 sf3.1990$state <- fipsCleaner(sf3.1990$state, 2)
 sf3.1990$place <- fipsCleaner(sf3.1990$place, 5)
 ## Create the 5 to 17 population total
-cols <- c('P1170002','P1170003','P1170004')
+cols <- c('P1170014','P1170015','P1170016')
 sf3.1990$poverty.5.to.7.1990 <- rowSums(sf3.1990[, cols])
 cols <- c('P1170002','P1170003','P1170004','P1170014','P1170015','P1170016')
 sf3.1990$pov.status.5.to.7.1990 <- rowSums(sf3.1990[, cols])
@@ -207,12 +209,69 @@ B17001_022E	Income in the past 12 months below poverty level:!!Female:!!15 years
 B17001_022M	Margin of Error for!!Income in the past 12 months below poverty level:!!Female:!!15 years
 B17001_023E	Income in the past 12 months below poverty level:!!Female:!!16 and 17 years
 B17001_023M Margin of Error for!!Income in the past 12 months below poverty level:!!Female:!!16 and 17 years
+
+B17001_034E  Income in the past 12 months at or above poverty level:!!Male:!!5 years
+B17001_034M	Margin of Error for!!Income in the past 12 months at or above poverty level:!!Male:!!5 years
+B17001_035E	Income in the past 12 months at or above poverty level:!!Male:!!6 to 11 years
+B17001_035M	Margin of Error for!!Income in the past 12 months at or above poverty level:!!Male:!!6 to 11 years
+B17001_036E	Income in the past 12 months at or above poverty level:!!Male:!!12 to 14 years
+B17001_036M	Margin of Error for!!Income in the past 12 months at or above poverty level:!!Male:!!12 to 14 years
+B17001_037E	Income in the past 12 months at or above poverty level:!!Male:!!15 years
+B17001_037M	Margin of Error for!!Income in the past 12 months at or above poverty level:!!Male:!!15 years
+B17001_038E	Income in the past 12 months at or above poverty level:!!Male:!!16 and 17 years
+B17001_038M	Margin of Error for!!Income in the past 12 months at or above poverty level:!!Male:!!16 and 17 years
+
+B17001_048E  Income in the past 12 months at or above poverty level:!!Female:!!5 years
+B17001_048M	Margin of Error for!!Income in the past 12 months at or above poverty level:!!Female:!!5 years
+B17001_049E	Income in the past 12 months at or above poverty level:!!Female:!!6 to 11 years
+B17001_049M	Margin of Error for!!Income in the past 12 months at or above poverty level:!!Female:!!6 to 11 years
+B17001_050E	Income in the past 12 months at or above poverty level:!!Female:!!12 to 14 years
+B17001_050M	Margin of Error for!!Income in the past 12 months at or above poverty level:!!Female:!!12 to 14 years
+B17001_051E	Income in the past 12 months at or above poverty level:!!Female:!!15 years
+B17001_051M	Margin of Error for!!Income in the past 12 months at or above poverty level:!!Female:!!15 years
+B17001_052E	Income in the past 12 months at or above poverty level:!!Female:!!16 and 17 years
+B17001_052M	Margin of Error for!!Income in the past 12 months at or above poverty level:!!Female:!!16 and 17 years
 '
-url <- paste0(api.url, '2013/ac1?key=', api.key, '&for=place:*&get=NAME,B01001_004E,B01001_004M,B01001_005E,B01001_005M,B01001_006E,B01001_006M,B01001_028E,B01001_028M,B01001_029E,B01001_029M,B01001_030E,B01001_030M,B17001_005E,B17001_005M,B17001_006E,B17001_006M,B17001_007E,B17001_007M,B17001_008E,B17001_008M,B17001_009E,B17001_009M,B17001_019E,B17001_019M,B17001_020E,B17001_020M,B17001_021E,B17001_021M,B17001_022E,B17001_022M,B17001_023E,B17001_023M')
+url <- paste0(api.url, '2013/acs1?key=', api.key, '&for=place:*&get=NAME,B01001_004E,B01001_004M,B01001_005E,B01001_005M,B01001_006E,B01001_006M,B01001_028E,B01001_028M,B01001_029E,B01001_029M,B01001_030E,B01001_030M,B17001_005E,B17001_005M,B17001_006E,B17001_006M,B17001_007E,B17001_007M,B17001_008E,B17001_008M,B17001_009E,B17001_009M,B17001_019E,B17001_019M,B17001_020E,B17001_020M,B17001_021E,B17001_021M,B17001_022E,B17001_022M,B17001_023E,B17001_023M')
 acs.2013 <- CensusAPI(url, c('NAME','state', 'place'))
+url <- paste0(api.url, '2013/acs1?key=', api.key, '&for=place:*&get=NAME,B17001_034E,B17001_034M,B17001_035E,B17001_035M,B17001_036E,B17001_036M,B17001_037E,B17001_037M,B17001_038E,B17001_038M,B17001_048E,B17001_048M,B17001_049E,B17001_049M,B17001_050E,B17001_050M,B17001_051E,B17001_051M,B17001_052E,B17001_052M')
+acs.2013 <- merge(acs.2013, CensusAPI(url, c('NAME','state', 'place')))
+## Create the 5 to 17 population total
+cols <- c('B01001_004E','B01001_005E','B01001_006E','B01001_028E','B01001_029E','B01001_030E')
+acs.2013$people.5.to.7.2013 <- rowSums(acs.2013[, cols])
+cols <- c('B01001_004M','B01001_005M','B01001_006M','B01001_028M','B01001_029M','B01001_030M')
+acs.2013$people.5.to.7.2013.moe <- apply(acs.2013[, cols], 1, aggregateMOE)
+
+cols <- c('B17001_005E','B17001_006E','B17001_007E','B17001_008E','B17001_009E','B17001_019E','B17001_020E','B17001_021E','B17001_022E','B17001_023E')
+acs.2013$poverty.5.to.7.2013 <- rowSums(acs.2013[, cols])
+cols <- c('B17001_005M','B17001_006M','B17001_007M','B17001_008M','B17001_009M','B17001_019M','B17001_020M','B17001_021M','B17001_022M','B17001_023M')
+acs.2013$poverty.5.to.7.2013.moe <- apply(acs.2013[, cols], 1, aggregateMOE)
+
+cols <- c('B17001_005E','B17001_006E','B17001_007E','B17001_008E','B17001_009E','B17001_019E','B17001_020E','B17001_021E','B17001_022E','B17001_023E','B17001_034E','B17001_035E','B17001_036E','B17001_037E','B17001_038E','B17001_048E','B17001_049E','B17001_050E','B17001_051E','B17001_052E')
+acs.2013$pov.status.5.to.7.2013 <- rowSums(acs.2013[, cols])
+cols <- c('B17001_005M','B17001_006M','B17001_007M','B17001_008M','B17001_009M','B17001_019M','B17001_020M','B17001_021M','B17001_022M','B17001_023M','B17001_034M','B17001_035M','B17001_036M','B17001_037M','B17001_038M','B17001_048M','B17001_049M','B17001_050M','B17001_051M','B17001_052M')
+acs.2013$pov.status.5.to.7.2013.moe <- apply(acs.2013[, cols], 1, aggregateMOE)
+
+## Rename the NAME variable
+names(acs.2013)[1] <- c('name.2013')
+
+## Drop raw data
+cols <- c('B01001_004E','B01001_005E','B01001_006E','B01001_028E','B01001_029E','B01001_030E')
+cols <- c(cols, 'B01001_004M','B01001_005M','B01001_006M','B01001_028M','B01001_029M','B01001_030M')
+cols <- c(cols, 'B17001_005E','B17001_006E','B17001_007E','B17001_008E','B17001_009E','B17001_019E','B17001_020E','B17001_021E','B17001_022E','B17001_023E')
+cols <- c(cols, 'B17001_005M','B17001_006M','B17001_007M','B17001_008M','B17001_009M','B17001_019M','B17001_020M','B17001_021M','B17001_022M','B17001_023M')
+cols <- c(cols, 'B17001_005E','B17001_006E','B17001_007E','B17001_008E','B17001_009E','B17001_019E','B17001_020E','B17001_021E','B17001_022E','B17001_023E','B17001_034E','B17001_035E','B17001_036E','B17001_037E','B17001_038E','B17001_048E','B17001_049E','B17001_050E','B17001_051E','B17001_052E')
+cols <- c(cols, 'B17001_005M','B17001_006M','B17001_007M','B17001_008M','B17001_009M','B17001_019M','B17001_020M','B17001_021M','B17001_022M','B17001_023M','B17001_034M','B17001_035M','B17001_036M','B17001_037M','B17001_038M','B17001_048M','B17001_049M','B17001_050M','B17001_051M','B17001_052M')
+
+raw <- names(acs.2013) %in% cols 
+acs.2013 <- acs.2013[!raw]
 
 ## Merge the data together
 census.1990 <- merge(sf1.1990, sf3.1990)
 census.2000 <- merge(sf1.2000, sf3.2000)
 census <- merge(census.2000, census.1990)
+census <- merge(acs.2013, census)
 census <- merge(sf1.2010, census)
+
+## Write the file to csv
+write.csv(census,'~/5-to-7-poverty.csv')
