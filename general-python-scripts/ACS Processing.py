@@ -1,13 +1,29 @@
+'''
+================================================================================
+ACS Processing for Community Profiles Python 3 Script
+
+In order to use this script you must set the root_dir variable to the location
+where the ACS spreadsheets are kept.  They need to be in a folder per state.
+
+There also needs to be an id spreadsheet that holds the logical record number
+ids.  This file name must match the directory name with a dash and ids.  For
+example - the New York spreadsheets are stored in the NY directory and the id
+spreadsheet is named NY-ids.
+================================================================================
+'''
+# NOTE: You cannot use the \ to break apart the path.  Use / instead!
+root_dir = 'H:/Data Warehouse/Census Bureau/American Community Survey/2009-13/'
+'''
+================================================================================
+You shouldn't have to edit beyond this point
+================================================================================
+'''
 from os.path import isfile, isdir, join
 from os import listdir
 from xlrd import open_workbook
 import xlsxwriter
 
-# NOTE: You cannot use the \ to break apart the path.  Use / instead!
-root_dir = 'H:/Data Warehouse/Census Bureau/American Community Survey/2009-13/'
-
-dirs = [d for d in listdir(root_dir) if isdir(join(root_dir, d))]
-
+# This function handles the reading of the ids spreadhseets
 def get_ids(root_dir, state_abr):
     ## Get the list of ids we need to look for
     ids = list()
@@ -17,6 +33,9 @@ def get_ids(root_dir, state_abr):
     for row in range(ws.nrows):
         ids.append(ws.cell(row, col).value)
     return ids
+
+# Get a list of directories that hold data
+dirs = [d for d in listdir(root_dir) if isdir(join(root_dir, d))]
 
 # This holds the complete list of files that have been downloaded
 file_names = list()
@@ -41,7 +60,6 @@ for file_name in file_names:
     new_wb = xlsxwriter.Workbook(new_file_path)
     new_ws = new_wb.add_worksheet()
     new_row = 0
-    first_line_not_printed = True
     for state_abr in dirs:
         file_path = join(root_dir, state_abr, file_name)
         if not isfile(file_path):
@@ -56,13 +74,18 @@ for file_name in file_names:
                 if ids_found < ids_to_find:
                     lookup_id = ws.cell(row, 5).value
                     if lookup_id in ids:
-                        for col in range(ws.ncols):
-                            if (ids_found == 0 and first_line_not_printed) or ids_found > 0:
+                        # The following line checks to make sure we don't duplicate
+                        # a header line (ids_found == 0) on a non-header row
+                        # (new_row > 0)
+                        if (ids_found == 0 and new_row == 0) or ids_found > 0:
+                            for col in range(ws.ncols):
                                 new_ws.write(new_row, col, ws.cell(row, col).value)
-                            if ids_found == 0:
-                                first_line_not_printed = False
+                        # Remove the id from the list so we don't search for it again
                         ids.remove(lookup_id)
-                        new_row = new_row + 1
+                        if not (ids_found == 0 and new_row > 0):
+                            # Since we skipped the duplicate header row we don't
+                            # want to advance the new_row variable
+                            new_row = new_row + 1
                         ids_found = ids_found + 1
     new_wb.close()
 print('Done!')
