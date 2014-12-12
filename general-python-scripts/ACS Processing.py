@@ -56,7 +56,9 @@ for file_name in file_names:
     n_files = len(file_names)
     progress = progress + 1
     print('Curently working on: '+file_name+' ('+str(progress)+' out of '+str(n_files)+' files)')
-    new_file_path = join(root_dir, file_name)
+    split_file_name = file_name.split('.')
+    new_file_name = split_file_name[0]+'.xlsx'
+    new_file_path = join(root_dir, new_file_name)
     new_wb = xlsxwriter.Workbook(new_file_path)
     new_ws = new_wb.add_worksheet()
     new_row = 0
