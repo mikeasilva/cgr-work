@@ -1,0 +1,306 @@
+# 2009-13 PUMS Community Profile Wrangling
+
+## Introduction
+I needed to wrangle the 2009-13 PUMS data to collect information for the community profiles produced by CGR.  This explains the steps taken in the wrangling process.
+
+## Data Wrangling
+These are the initial variables and libraries:  
+```{r, message=FALSE}
+## Load needed libraries
+library(dplyr)
+# Set to FALSE to skip the cleaning steps
+clean.up = TRUE
+# The URL where the zip files are stored
+url <- 'http://www2.census.gov/acs2013_5yr/pums/'
+## The nane of the zip files
+household.zip <- 'csv_hny.zip'
+people.zip <- 'csv_pny.zip'
+## The name of the csv files found inside the zip files
+household.file <- 'ss13hny.csv'
+people.file <- 'ss13pny.csv'
+##
+household.vars <- c('SERIALNO', 'GRNTP','HINCP','TEN','VALP','WGTP')
+people.vars <- c('SERIALNO', 'SPORDER', 'ST','PUMA00','PUMA10','HISP','RAC1P','PWGTP')
+```
+
+### Data Download
+First I download the data if it doesn't exist in the working directory:  
+```{r, message=FALSE}
+if(!file.exists(household.file)){
+  if(!file.exists(household.zip)){
+    download.file(paste0(url,household.zip), household.zip)
+  }
+  unzip(household.zip)
+}
+
+if(!file.exists(people.file)){
+  if(!file.exists(people.zip)){
+    download.file(paste0(url,people.zip), people.zip)
+  }
+  unzip(people.zip)
+}
+```
+
+### Variable Selection
+Then I load the people table into memory:  
+```{r}
+## Since this is large let's pull in 100 observations
+people <- read.csv(people.file, header=TRUE, nrows=100)
+## Let's set up the column classes with the default of NULL
+colclasses <- rep('NULL', ncol(people))
+## Get the column number for the people variables
+w <- which(names(people) %in% people.vars)
+## Update column classes with the actual class for the people variables
+colclasses[w] <- sapply(people[,w], class)
+## Read in the huge people file with our preset column classes
+people <- read.csv(people.file, header=TRUE, colClasses=colclasses)
+people <- people[,people.vars]
+```
+
+According to Data Ferrett there are 15,998,839 non-hispanic people in New York State.  Let's check our data to make sure the import worked:  
+```{r}
+people %>%
+  filter(HISP == 1) %>%
+  summarise(sum(PWGTP))
+```
+
+#### Race/Ethnicity Recode
+Then I recode the race/ethnicity variables:  
+```{r}
+## Recode the hispanic variable
+people$RECODE1 <- 'Hispanic'
+people[people$HISP == 1,]$RECODE1 <- 'Not Hispanic'
+
+## Recode the race variable
+people$RECODE2 <- 'All Other'
+people[people$RAC1P == 1,]$RECODE2 <- 'White alone'
+people[people$RAC1P == 2,]$RECODE2 <- 'Black alone'
+people[people$RAC1P == 6,]$RECODE2 <- 'Asian alone'
+```
+
+Then I pull in the household data:  
+```{r}
+## Let's use the same process for the people file on the household file
+household <- read.csv(household.file, header=TRUE, nrows=100)
+colclasses <- rep('NULL', ncol(household))
+w <- which(names(household) %in% household.vars)
+colclasses[w] <- sapply(household[,w], class)
+## Read in the huge household file with our preset column classes
+household <- read.csv(household.file, header=TRUE, colClasses=colclasses)
+household <- household[,household.vars]
+```
+
+Again let's check the import.  New York's Owner occupied units (TEN in 1,2) total 3,908,105.  
+```{r}
+household %>%
+  filter(TEN > 0) %>%
+  filter(TEN < 3) %>%
+  summarise(sum(WGTP))
+```
+
+#### Rent, Home Value and Household Income Recode  
+I recode the rent variable into classes:  
+```{r}
+## Function for classifying rent values
+recode3 <- function(rent){
+  if(is.na(rent))
+    return('Z - Not Elsewhere Classified (nec.)')
+  else if(rent >=1 & rent < 100)
+    return('A - Less than $100')
+  else if(rent >=100 & rent < 150)
+    return('B - $100 to $149')
+  else if(rent >=150 & rent < 200)
+    return('C - $150 to $199')
+  else if(rent >=200 & rent < 250)
+    return('D - $200 to $249')
+  else if(rent >=250 & rent < 300)
+    return('E - $250 to $299')
+  else if(rent >=300 & rent < 350)
+    return('F - $300 to $349')
+  else if(rent >=350 & rent < 400)
+    return('G - $350 to $399')
+  else if(rent >=400 & rent < 450)
+    return('H - $400 to $449')
+  else if(rent >=450 & rent < 500)
+    return('I - $450 to $499')
+  else if(rent >=500 & rent < 550)
+    return('J - $500 to $549')
+  else if(rent >=550 & rent < 600)
+    return('K - $550 to $599')
+  else if(rent >=600 & rent < 650)
+    return('L - $600 to $649')
+  else if(rent >=650 & rent < 700)
+    return('M - $650 to $699')
+  else if(rent >=700 & rent < 750)
+    return('N - $700 to $749')
+  else if(rent >=750 & rent < 800)
+    return('O - $750 to $799')
+  else if(rent >=800 & rent < 900)
+    return('P - $800 to $899')
+  else if(rent >=900 & rent < 1000)
+    return('Q - $900 to $999')
+  else if(rent >=1000 & rent < 1250)
+    return('R - $1,000 to $1,249')
+  else if(rent >=1250 & rent < 1500)
+    return('S - $1,250 to $1,499')
+  else if(rent >=1500 & rent < 2000)
+    return('T - $1,500 to $1,999')
+  else if(rent >=200 & rent < 100000)
+    return('U - $2,000 or more')
+  else
+    return('Z - Not Elsewhere Classified (nec.)')
+}
+
+household$RECODE3 <- sapply(household$GRNTP, function(x){recode3(x)})
+```
+
+Then I recode the household income variable into classes:  
+```{r}
+## Function for classifying income values
+recode4 <- function(income){
+  if(is.na(income))
+    return('Z - Not Elsewhere Classified (nec.)')
+  else if(income >= -59998 & income < 0)
+    return('A - Between -59998 and -1')
+  else if(income >= 2 & income < 10000)
+    return('B - Between 2 and 9999')
+  else if(income >= 10000 & income < 15000)
+    return('C - Between 10000 and 14999')
+  else if(income >= 15000 & income < 20000)
+    return('D - Between 15000 and 19999')
+  else if(income >= 20000 & income < 25000)
+    return('E - Between 20000 and 24999')
+  else if(income >= 25000 & income < 30000)
+    return('F - Between 25000 and 29999')
+  else if(income >= 30000 & income < 35000)
+    return('G - Between 30000 and 34999')
+  else if(income >= 35000 & income < 40000)
+    return('H - Between 35000 and 39999')
+  else if(income >= 40000 & income < 45000)
+    return('I - Between 40000 and 44999')
+  else if(income >= 45000 & income < 50000)
+    return('J - Between 45000 and 49999')
+  else if(income >= 50000 & income < 60000)
+    return('K - Between 50000 and 59999')
+  else if(income >= 60000 & income < 75000)
+    return('L - Between 60000 and 74999')
+  else if(income >= 75000 & income < 100000)
+    return('M - Between 75000 and 99999')
+  else if(income >= 100000 & income < 125000)
+    return('N - Between 100000 and 124999')
+  else if(income >= 125000 & income < 150000)
+    return('O - Between 125000 and 149999')
+  else if(income >= 150000 & income < 200000)
+    return('P - Between 150000 and 199999')
+  else if(income >= 200000 & income < 1000000000)
+    return('Q - Between 200000 and 99999999')
+  else if(income >= 0 & income < 2)
+    return('R - 1, 0, or less than -59998')
+  else if(income < -59998)
+    return('R - 1, 0, or less than -59998')
+  else
+    return('Z - Not Elsewhere Classified (nec.)')
+}
+
+household$RECODE4 <- sapply(household$HINCP, function(x){recode4(x)})
+```
+
+Then I recode the home value variable into classes:  
+```{r}
+## Function for classifying home value values
+recode5 <- function(value){
+  if(is.na(value))
+    return('Z - N/A (GQ/vacant units, except "for-sale-only" and "sold, not occupied"/not owned or being bought)')
+  else if(value >= 1 & value < 10000)
+    return('A - Less than $10,000')
+  else if(value >= 10000 & value < 15000)
+    return('B - $10,000 to $14,999')
+  else if(value >= 15000 & value < 20000)
+    return('C - $15,000 to $19,999')
+  else if(value >= 20000 & value < 25000)
+    return('D - $20,000 to $24,999')
+  else if(value >= 25000 & value < 30000)
+    return('E - $25,000 to $29,999')
+  else if(value >= 30000 & value < 35000)
+    return('F - $30,000 to $34,999')
+  else if(value >= 35000 & value < 40000)
+    return('G - $35,000 to $39,999')
+  else if(value >= 40000 & value < 50000)
+    return('H - $40,000 to $49,999')
+  else if(value >= 50000 & value < 60000)
+    return('I - $50,000 to $59,999')
+  else if(value >= 60000 & value < 70000)
+    return('J - $60,000 to $69,999')
+  else if(value >= 70000 & value < 80000)
+    return('K - $70,000 to $79,999')
+  else if(value >= 80000 & value < 90000)
+    return('L - $80,000 to $89,999')
+  else if(value >= 90000 & value < 100000)
+    return('M - $90,000 to $99,999')
+  else if(value >= 100000 & value < 125000)
+    return('N - $100,000 to $124,999')
+  else if(value >= 125000 & value < 150000)
+    return('O - $125,000 to $149,999')
+  else if(value >= 150000 & value < 175000)
+    return('P - $150,000 to $174,999')
+  else if(value >= 175000 & value < 200000)
+    return('Q - $175,000 to $199,999')
+  else if(value >= 200000 & value < 250000)
+    return('R - $200,000 to $249,999')
+  else if(value >= 250000 & value < 300000)
+    return('S - $250,000 to $299,999')
+  else if(value >= 300000 & value < 400000)
+    return('T - $300,000 to $399,999')
+  else if(value >= 400000 & value < 500000)
+    return('U - $400,000 to $499,999')
+  else if(value >= 500000 & value < 750000)
+    return('V - $500,000 to $749,999')
+  else if(value >= 750000 & value < 1000000)
+    return('W - $750,000 to $999,999')
+  else if(value >= 1000000)
+    return('X - $1,000,000 or more')
+  else
+    return('Z - N/A (GQ/vacant units, except "for-sale-only" and "sold, not occupied"/not owned or being bought)')
+}
+
+household$RECODE5 <- sapply(household$VALP, function(x){recode5(x)})
+```
+
+Now that the household variables are recoded I merge that information into the people data frame creating a new pums data set
+```{r}
+household.vars <- c('SERIALNO', 'RECODE3', 'RECODE4', 'RECODE5', 'TEN', 'WGTP')
+household <- household[,names(household) %in% household.vars]
+pums <- merge(people,household)
+
+pums$renter <- pums$home.owner <- 0
+pums$home.owner[pums$TEN %in% c(1, 2)] <- 1
+pums$renter[pums$TEN %in% c(3, 4)] <- 1
+```
+
+Since we will be mixing housing and people variables we need to adjust the weights:
+```{r}
+pums$weight <- pums$PWGTP * (pums$WGT / pums$PWGT)
+```
+
+Now we can check this process.  According to Data Ferret, there are 10,476,441 people living in owner occupied housing in New York.  Of those 905,861 are Hispanic and 9,570,580 are not Hispanic.
+
+```{r}
+pums %>% 
+  group_by(RECODE1) %>%
+  filter(home.owner == 1) %>%
+  summarise(sum(weight))
+```
+
+## Saving File
+Now that the file is wrangled I will save the session and use it in the tabulations.  
+```{r}
+if(clean.up){
+  ## Tables
+  rm(household, people)
+  ## Variables
+  rm(clean.up, colclasses, household.file, household.vars, household.zip, people.file, people.vars, people.zip, url, w)
+  ## Functions
+  rm(recode3 , recode4, recode5)
+}
+save.image('~/pums.RData')
+```
