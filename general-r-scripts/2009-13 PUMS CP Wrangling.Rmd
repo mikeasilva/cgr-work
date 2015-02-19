@@ -57,7 +57,7 @@ people <- read.csv(people.file, header=TRUE, colClasses=colclasses)
 people <- people[,people.vars]
 ```
 
-According to Data Ferrett there are 15,998,839 non-hispanic people in New York State.  Let's check our data to make sure the import worked:  
+According to Data Ferret there are 15,998,839 non-hispanic people in New York State.  Let's check our data to make sure the import worked:  
 ```{r}
 people %>%
   filter(HISP == 1) %>%
@@ -68,14 +68,14 @@ people %>%
 Then I recode the race/ethnicity variables:  
 ```{r}
 ## Recode the hispanic variable
-people$RECODE1 <- 'Hispanic'
-people[people$HISP == 1,]$RECODE1 <- 'Not Hispanic'
+people$RECODE1 <- 'B - Hispanic'
+people[people$HISP == 1,]$RECODE1 <- 'A - Not Hispanic'
 
 ## Recode the race variable
-people$RECODE2 <- 'All Other'
-people[people$RAC1P == 1,]$RECODE2 <- 'White alone'
-people[people$RAC1P == 2,]$RECODE2 <- 'Black alone'
-people[people$RAC1P == 6,]$RECODE2 <- 'Asian alone'
+people$RECODE2 <- 'D - All Other'
+people[people$RAC1P == 1,]$RECODE2 <- 'A - White alone'
+people[people$RAC1P == 2,]$RECODE2 <- 'B - Black alone'
+people[people$RAC1P == 6,]$RECODE2 <- 'C - Asian alone'
 ```
 
 Then I pull in the household data:  
@@ -210,57 +210,57 @@ Then I recode the home value variable into classes:
 ## Function for classifying home value values
 recode5 <- function(value){
   if(is.na(value))
-    return('Z - N/A (GQ/vacant units, except "for-sale-only" and "sold, not occupied"/not owned or being bought)')
+    return('A - N/A (GQ/vacant units, except "for-sale-only" and "sold, not occupied"/not owned or being bought)')
   else if(value >= 1 & value < 10000)
-    return('A - Less than $10,000')
+    return('B - Less than $10,000')
   else if(value >= 10000 & value < 15000)
-    return('B - $10,000 to $14,999')
+    return('C - $10,000 to $14,999')
   else if(value >= 15000 & value < 20000)
-    return('C - $15,000 to $19,999')
+    return('D - $15,000 to $19,999')
   else if(value >= 20000 & value < 25000)
-    return('D - $20,000 to $24,999')
+    return('E - $20,000 to $24,999')
   else if(value >= 25000 & value < 30000)
-    return('E - $25,000 to $29,999')
+    return('F - $25,000 to $29,999')
   else if(value >= 30000 & value < 35000)
-    return('F - $30,000 to $34,999')
+    return('G - $30,000 to $34,999')
   else if(value >= 35000 & value < 40000)
-    return('G - $35,000 to $39,999')
+    return('H - $35,000 to $39,999')
   else if(value >= 40000 & value < 50000)
-    return('H - $40,000 to $49,999')
+    return('I - $40,000 to $49,999')
   else if(value >= 50000 & value < 60000)
-    return('I - $50,000 to $59,999')
+    return('J - $50,000 to $59,999')
   else if(value >= 60000 & value < 70000)
-    return('J - $60,000 to $69,999')
+    return('K - $60,000 to $69,999')
   else if(value >= 70000 & value < 80000)
-    return('K - $70,000 to $79,999')
+    return('L - $70,000 to $79,999')
   else if(value >= 80000 & value < 90000)
-    return('L - $80,000 to $89,999')
+    return('M - $80,000 to $89,999')
   else if(value >= 90000 & value < 100000)
-    return('M - $90,000 to $99,999')
+    return('N - $90,000 to $99,999')
   else if(value >= 100000 & value < 125000)
-    return('N - $100,000 to $124,999')
+    return('O - $100,000 to $124,999')
   else if(value >= 125000 & value < 150000)
-    return('O - $125,000 to $149,999')
+    return('P - $125,000 to $149,999')
   else if(value >= 150000 & value < 175000)
-    return('P - $150,000 to $174,999')
+    return('Q - $150,000 to $174,999')
   else if(value >= 175000 & value < 200000)
-    return('Q - $175,000 to $199,999')
+    return('R - $175,000 to $199,999')
   else if(value >= 200000 & value < 250000)
-    return('R - $200,000 to $249,999')
+    return('S - $200,000 to $249,999')
   else if(value >= 250000 & value < 300000)
-    return('S - $250,000 to $299,999')
+    return('T - $250,000 to $299,999')
   else if(value >= 300000 & value < 400000)
-    return('T - $300,000 to $399,999')
+    return('U - $300,000 to $399,999')
   else if(value >= 400000 & value < 500000)
-    return('U - $400,000 to $499,999')
+    return('V - $400,000 to $499,999')
   else if(value >= 500000 & value < 750000)
-    return('V - $500,000 to $749,999')
+    return('W - $500,000 to $749,999')
   else if(value >= 750000 & value < 1000000)
-    return('W - $750,000 to $999,999')
+    return('X - $750,000 to $999,999')
   else if(value >= 1000000)
-    return('X - $1,000,000 or more')
+    return('Y - $1,000,000 or more')
   else
-    return('Z - N/A (GQ/vacant units, except "for-sale-only" and "sold, not occupied"/not owned or being bought)')
+    return('A - N/A (GQ/vacant units, except "for-sale-only" and "sold, not occupied"/not owned or being bought)')
 }
 
 household$RECODE5 <- sapply(household$VALP, function(x){recode5(x)})
