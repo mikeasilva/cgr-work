@@ -47,7 +47,7 @@ geocode5000 <- function(address.vector, api.key = FALSE){
     # Make the request
     if(use.api.key == FALSE){
       library(ggmap)
-      geo_reply = geocode(address, output="all", override_limit=TRUE)
+      geo_reply = geocode(address, output="all", override_limit=TRUE, messaging=FALSE)
     } else {
       library(rjson)
       url <- paste0("https://maps.googleapis.com/maps/api/geocode/json?address=",address,"&sensor=false&key=",api.key)
