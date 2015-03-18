@@ -66,15 +66,24 @@ names(sf3.df) <- c('pci.total','pci.white','pci.black','pci.ai','pci.a','pci.o',
 sf3.df$state <- ifelse(as.numeric(sf3.df$state) < 10, paste0('0',sf3.df$state), sf3.df$state)
 
 ## Bluid county.fips to join on
-sf3.df$county.fips <- paste0(sf3.df$state,sf3.df$county)
+sf3.df <- sf3.df %>%
+  mutate(ai.white = pci.white * pop.white) %>%
+  mutate(ai.black = pci.black * pop.black) %>%
+  mutate(ai.ai = pci.ai * pop.ai) %>%
+  mutate(ai.a = pci.a * pop.a) %>%
+  mutate(ai.o = pci.o * pop.o) %>%
+  mutate(ai.total = ai.white + ai.black + ai.ai + ai.a + ai.o) %>%
+  mutate(county.fips = paste0(state,county))
 
 ## Select the list of metro names for later
-metro.names <- read.csv('~/metrolist.csv') %>%
+classes <- read.csv('~/metrolist.csv', stringsAsFactors=FALSE, nrows=1)
+classes <- rep('character', ncol(classes))
+metro.names <- read.csv('~/metrolist.csv', stringsAsFactors=FALSE, colClasses=classes) %>%
   select(msa.fips,metro.name) %>%
   unique(.)
 
 ## Let's aggregate this county level data to the metro level
-metro.1990 <- read.csv('~/metrolist.csv') %>%
+metro.1990 <- read.csv('~/metrolist.csv', stringsAsFactors=FALSE, colClasses=classes) %>%
   select(msa.fips,county.fips) %>%
   merge(sf3.df, .) %>%
   select(-county,-state,-county.fips) %>%
@@ -89,5 +98,25 @@ metro.1990 <- read.csv('~/metrolist.csv') %>%
   merge(., metro.names)
 
 ## Write CSV Files
-write.csv(metro.1990,'~/1990-metro.csv', row.names=FALSE)
-write.csv(sf3.df,'~/1990-county.csv', row.names=FALSE)
+# write.csv(metro.1990,'~/1990-metro.csv', row.names=FALSE)
+# write.csv(sf3.df,'~/1990-county.csv', row.names=FALSE)
+
+library(RDCOMClient)
+source("http://www.omegahat.org/RDCOMClient/examples/excelUtils3.R")
+xls <- COMCreate("Excel.Application")
+xls[["Visible"]] <- TRUE
+wb = xls[["Workbooks"]]$Add(1)
+rdcomexport <- function(df, sheet.name) {
+  sh = wb[["Worksheets"]]$Add()
+  sh[["Name"]] <- sheet.name
+  exportDataFrame(df, at = sh$Range("A1"))
+}
+
+rdcomexport(metro.1990,'1990-metro')
+rdcomexport(sf3.df,'1990-county')
+
+xls$Sheets("Sheet1")$Delete()
+filename <- '1990.xlsx'
+wb$SaveAs(filename)
+wb$Close(filename)
+xls$Quit()
