@@ -15,10 +15,15 @@ http://www.bls.gov/cew/datatoc.htm
 """    
 # The following is a list of the files we want to extract from the zip archive
 # If you want to add to this list be sure to include a county and state    
-file_starts = ['county/cn14fl', 'county/CN14FL', 'county/cn36ny', 'county/CN36NY', 'state/st12fl', 'state/ST12FL', 'state/st36ny', 'state/ST36NY', 'msa/allmsa', 'msa/ALLMSA', 'national/nt00us', 'national/NT00US']
+file_starts = ['county/cn12fl', 'county/CN12FL', 'county/cn36ny', 'county/CN36NY', 'state/st12fl', 'state/ST12FL', 'state/st36ny', 'state/ST36NY', 'msa/allmsa', 'msa/ALLMSA', 'national/nt00us', 'national/NT00US']
 
 start_year = 2000
 end_year = 2014
+
+# Set the following to False if you DO NOT want to create a new update table.
+# You may want to do this when you need to start the process back up after an
+# error (i.e. bad zip file).
+create_database_table_from_scratch = True
 
 """ 
 ====== DO NOT EDIT BELOW THIS POINT UNLESS YOU KNOW WHAT YOU ARE DOING! ======
@@ -97,47 +102,48 @@ def db_convert(fields, db_types):
 """
 
 # Connect to MySQL Database
-mydb = MySQLdb.connect(host='HOST',
-    user='USER',
-    passwd='PASSWD',
-    db='DB')
+mydb = MySQLdb.connect(host='host',
+    user='user',
+    passwd='passwd',
+    db='db')
 cursor = mydb.cursor()
 
-## Create clean update table
-cursor.execute('DROP TABLE IF EXISTS `BLS_QCEW_Data_UPDATE`')
-
-cursor.execute('CREATE TABLE IF NOT EXISTS `BLS_QCEW_Data_UPDATE` ( \
-  `Prefix` varchar(3) DEFAULT NULL, `Area` varchar(5) DEFAULT NULL, \
-  `Datatype` varchar(1) DEFAULT NULL, `Size` int(1) DEFAULT NULL, \
-  `Ownership` varchar(1) DEFAULT NULL, `Industry` varchar(6) DEFAULT NULL, \
-  `Year` int(4) DEFAULT NULL, `Aggregation` int(2) DEFAULT NULL, \
-  `Disclosure Q1` varchar(1) DEFAULT NULL, \
-  `Establishment Q1` int(8) DEFAULT NULL, `Jan Emp` int(9) DEFAULT NULL, \
-  `Feb Emp` int(9) DEFAULT NULL, `Mar Emp` int(9) DEFAULT NULL, \
-  `TQW Q1` bigint(15) DEFAULT NULL, `TaxQW Q1` bigint(15) DEFAULT NULL, \
-  `QC Q1` int(13) DEFAULT NULL, `AWW Q1` int(8) DEFAULT NULL, \
-  `Disclosure Q2` varchar(1) DEFAULT NULL, \
-  `Establishment Q2` int(8) DEFAULT NULL, `Apr Emp` int(9) DEFAULT NULL, \
-  `May Emp` int(9) DEFAULT NULL, `Jun Emp` int(9) DEFAULT NULL, \
-  `TQW Q2` bigint(15) DEFAULT NULL, `Tax QW Q2` bigint(15) DEFAULT NULL, \
-  `QC Q2` int(13) DEFAULT NULL, `AWW Q2` int(8) DEFAULT NULL, \
-  `Disclosure Q3` varchar(1) DEFAULT NULL, \
-  `Establishment Q3` int(8) DEFAULT NULL, `Jul Emp` int(9) DEFAULT NULL, \
-  `Aug Emp` int(9) DEFAULT NULL, `Sep Emp` int(9) DEFAULT NULL, \
-  `TQW Q3` bigint(15) DEFAULT NULL, `Tax QW Q3` bigint(15) DEFAULT NULL, \
-  `QC Q3` int(13) DEFAULT NULL, `AWW Q3` int(8) DEFAULT NULL, \
-  `Disclosure Q4` varchar(1) DEFAULT NULL, \
-  `Establishment Q4` int(8) DEFAULT NULL, `Oct Emp` int(9) DEFAULT NULL, \
-  `Nov Emp` int(9) DEFAULT NULL, `Dec Emp` int(9) DEFAULT NULL, \
-  `TQW Q4` bigint(15) DEFAULT NULL, `TaxQW Q4` bigint(15) DEFAULT NULL, \
-  `QC Q4` int(13) DEFAULT NULL, `AWW Q4` int(8) DEFAULT NULL, \
-  `Disclosure Y` varchar(1) DEFAULT NULL, \
-  `Establishments Y` int(8) DEFAULT NULL, `Emp Y` int(9) DEFAULT NULL, \
-  `Total Wages Y` bigint(15) DEFAULT NULL, `Tax Wages Y` bigint(15) DEFAULT NULL, \
-  `AC Y` int(13) DEFAULT NULL, `AWW y` int(8) DEFAULT NULL, \
-  `Average Annual Pay` int(9) DEFAULT NULL, \
-  KEY `Area` (`Area`), KEY `Year` (`Year`), KEY `Industry` (`Industry`), \
-  KEY `Ownership` (`Ownership`) ) ENGINE=MyISAM DEFAULT CHARSET=utf8;')
+if create_database_table_from_scratch:
+    ## Create clean update table
+    cursor.execute('DROP TABLE IF EXISTS `BLS_QCEW_Data_UPDATE`')
+    
+    cursor.execute('CREATE TABLE IF NOT EXISTS `BLS_QCEW_Data_UPDATE` ( \
+    `Prefix` varchar(3) DEFAULT NULL, `Area` varchar(5) DEFAULT NULL, \
+    `Datatype` varchar(1) DEFAULT NULL, `Size` int(1) DEFAULT NULL, \
+    `Ownership` varchar(1) DEFAULT NULL, `Industry` varchar(6) DEFAULT NULL, \
+    `Year` int(4) DEFAULT NULL, `Aggregation` int(2) DEFAULT NULL, \
+    `Disclosure Q1` varchar(1) DEFAULT NULL, \
+    `Establishment Q1` int(8) DEFAULT NULL, `Jan Emp` int(9) DEFAULT NULL, \
+    `Feb Emp` int(9) DEFAULT NULL, `Mar Emp` int(9) DEFAULT NULL, \
+    `TQW Q1` bigint(15) DEFAULT NULL, `TaxQW Q1` bigint(15) DEFAULT NULL, \
+    `QC Q1` int(13) DEFAULT NULL, `AWW Q1` int(8) DEFAULT NULL, \
+    `Disclosure Q2` varchar(1) DEFAULT NULL, \
+    `Establishment Q2` int(8) DEFAULT NULL, `Apr Emp` int(9) DEFAULT NULL, \
+    `May Emp` int(9) DEFAULT NULL, `Jun Emp` int(9) DEFAULT NULL, \
+    `TQW Q2` bigint(15) DEFAULT NULL, `Tax QW Q2` bigint(15) DEFAULT NULL, \
+    `QC Q2` int(13) DEFAULT NULL, `AWW Q2` int(8) DEFAULT NULL, \
+    `Disclosure Q3` varchar(1) DEFAULT NULL, \
+    `Establishment Q3` int(8) DEFAULT NULL, `Jul Emp` int(9) DEFAULT NULL, \
+    `Aug Emp` int(9) DEFAULT NULL, `Sep Emp` int(9) DEFAULT NULL, \
+    `TQW Q3` bigint(15) DEFAULT NULL, `Tax QW Q3` bigint(15) DEFAULT NULL, \
+    `QC Q3` int(13) DEFAULT NULL, `AWW Q3` int(8) DEFAULT NULL, \
+    `Disclosure Q4` varchar(1) DEFAULT NULL, \
+    `Establishment Q4` int(8) DEFAULT NULL, `Oct Emp` int(9) DEFAULT NULL, \
+    `Nov Emp` int(9) DEFAULT NULL, `Dec Emp` int(9) DEFAULT NULL, \
+    `TQW Q4` bigint(15) DEFAULT NULL, `TaxQW Q4` bigint(15) DEFAULT NULL, \
+    `QC Q4` int(13) DEFAULT NULL, `AWW Q4` int(8) DEFAULT NULL, \
+    `Disclosure Y` varchar(1) DEFAULT NULL, \
+    `Establishments Y` int(8) DEFAULT NULL, `Emp Y` int(9) DEFAULT NULL, \
+    `Total Wages Y` bigint(15) DEFAULT NULL, `Tax Wages Y` bigint(15) DEFAULT NULL, \
+    `AC Y` int(13) DEFAULT NULL, `AWW y` int(8) DEFAULT NULL, \
+    `Average Annual Pay` int(9) DEFAULT NULL, \
+    KEY `Area` (`Area`), KEY `Year` (`Year`), KEY `Industry` (`Industry`), \
+    KEY `Ownership` (`Ownership`) ) ENGINE=MyISAM DEFAULT CHARSET=utf8;')
 
 # Build the list of the files we need to extract from the zip files
 file_years = range(start_year - 2000, end_year - 2000 + 1)
@@ -197,6 +203,7 @@ for year in years:
             `Disclosure Y`, `Establishments Y`, `Emp Y`, `Total Wages Y`, \
             `Tax Wages Y`, `AC Y`, `AWW y`, `Average Annual Pay`)' \
             'VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', fields)
+        a_file.close()
  
 mydb.commit()
 cursor.close()
@@ -205,6 +212,9 @@ cursor.close()
 current_directory = os.listdir(os.getcwd())
 new_files = get_complement(current_directory, initial_directory)
 for f in new_files:
-    shutil.rmtree(f)
+    if os.path.isfile(f):
+        os.remove(f)
+    else:
+        shutil.rmtree(f)
     
 print "Done"
