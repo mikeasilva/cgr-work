@@ -7,7 +7,7 @@ Created on Thu Aug 27 12:55:23 2015
 # Load libraries
 from bs4 import BeautifulSoup
 import requests
-import csv
+import pandas as pd
 
 # Initiate variables
 metros = dict()
@@ -45,7 +45,7 @@ for key, value in metros.iteritems() :
     for row in table.findAll("tr"):
         indexCategory = row.find("td",{"class":"indexCategory"}).text
         indexData = row.find("td",{"class":"indexData"}).text
-        new_row = [value, indexCategory, indexData, note]
+        new_row = {"Metro":value, "Category":indexCategory, "Index":indexData, "Notes":note}
         cost_of_living_index.append(new_row)
         
     # Average Prices
@@ -58,18 +58,14 @@ for key, value in metros.iteritems() :
             avgData = None
         else:
             avgData = row.find("td",{"class":"avgData"}).text
-        new_row = [value, avgCategory, avgData, note]
+        new_row = {"Metro":value, "Category":avgCategory, "Avg Price":avgData, "Notes":note}
         avg_prices.append(new_row)
 
 # Save data as csv files
-with open("cost_of_living_index.csv", "wb") as f:
-    writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-    writer.writerow(cost_of_living_index)
-f.close()
-    
-with open("avg_prices.csv", "wb") as f:
-    writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-    writer.writerow(avg_prices)
-f.close()
-    
+cost_of_living_index_df = pd.DataFrame(cost_of_living_index)
+cost_of_living_index_df.to_csv("cost_of_living_index.csv", encoding='utf-8', index=False)
+
+avg_prices_df = pd.DataFrame(avg_prices)
+avg_prices_df.to_csv("avg_prices.csv", encoding='utf-8', index=False)
+
 print "Done"
