@@ -15,9 +15,10 @@ http://www.bls.gov/cew/datatoc.htm
 """    
 # The following is a list of the files we want to extract from the zip archive
 # If you want to add to this list be sure to include a county and state    
-file_starts = ['county/cn12fl', 'county/CN12FL', 'county/cn36ny', 'county/CN36NY', 'state/st12fl', 'state/ST12FL', 'state/st36ny', 'state/ST36NY', 'msa/allmsa', 'msa/ALLMSA', 'national/nt00us', 'national/NT00US']
+#file_starts = ['county/cn12fl', 'county/CN12FL', 'county/cn36ny', 'county/CN36NY', 'state/st12fl', 'state/ST12FL', 'state/st36ny', 'state/ST36NY', 'msa/allmsa', 'msa/ALLMSA', 'national/nt00us', 'national/NT00US']
+file_starts = ['county/cn12fl', 'county/CN12FL', 'county/cn36ny', 'county/CN36NY', 'state/st12fl', 'state/ST12FL', 'state/st36ny', 'state/ST36NY', 'national/nt00us', 'national/NT00US']
 
-start_year = 2000
+start_year = 1999
 end_year = 2014
 
 # Set the following to False if you DO NOT want to create a new update table.
@@ -71,15 +72,16 @@ def get_file_name_list(file_starts, years):
     file_name_list = list()
     for f in file_starts:
         for y in years:
-            if y < 10:
-                # Add a leading zero to the year
-                y = '0' + str(y)
+            y = right(str(y),2)
             file_name = f + str(y) + '.enb'
             file_name_list.append(file_name)
             file_name = f + str(y) + '.ENB'
             file_name_list.append(file_name)
     return file_name_list
 
+def right(s, amount):
+    return s[-amount:]
+    
 def get_intersection(a, b):
     # This returns the intersection of two lists
     return list(set(a) & set(b))        
@@ -146,7 +148,7 @@ if create_database_table_from_scratch:
     KEY `Ownership` (`Ownership`) ) ENGINE=MyISAM DEFAULT CHARSET=utf8;')
 
 # Build the list of the files we need to extract from the zip files
-file_years = range(start_year - 2000, end_year - 2000 + 1)
+file_years = range(start_year - 1900, end_year - 1900 + 1)
 file_name_list = get_file_name_list(file_starts, file_years)
 
 # Get the year range the script will process
