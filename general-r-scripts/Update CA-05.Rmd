@@ -1,0 +1,90 @@
+# Update BEA_CA_04 #
+
+This R Markdown document explains the process undertaken to update the BEA_CA_05 table in the data warehouse.  This table is updated annually.  
+## Step 1: Load the Libraries ##
+
+First we will load the libraries needed for the task:  
+
+```{r, warning=FALSE, message=FALSE}
+library(reshape2)
+library(dplyr)
+# Give extra memory to the Java heap so we can save the .xlsx file
+options(java.parameters = "-Xmx1000m")
+library(xlsx)
+```
+
+## Step 2: Define Key Script Parameters ##
+
+Next we define the parameters that are important to this script:  
+
+```{r}
+# What table are we going to get from the BEA?
+bea.table.name <- 'CA5'
+# Where should the zip file be saved?
+zip.file <- paste0('~/', bea.table.name, '.zip')
+# Which states do we want to include in the table?
+states <- c('FL', 'NY', 'TN', 'US')
+# Once processed where should the data be saved?
+raw.data.file.path <- 'H:/Data Warehouse/Bureau of Economic Analysis (BEA)/CA-05.xlsx'
+# What is the table name in the data warehouse?
+data.warehouse.table.name <- 'BEA_CA_05'
+```
+
+## Step 3: Download the Data ##
+
+Now that these parameters are in place we are ready to download the data:  
+
+```{r, message=FALSE}
+url <- paste0('http://www.bea.gov/regional/zip/', bea.table.name, '.zip')
+download.file(url, destfile=zip.file)
+```
+
+## Step 4: Process the Data ##
+
+Next we will loop through the list of states and process the data.  We will unzip the state specific csv file from the zip archive and read it in.  Next we will transform the data from a wide format to a long format.  Since the BEA name columns with the year and R adds an X to the variable name we need to remove the X and change the type from a character string to a number.  Finaly we need to filter the data pulling only the years and columns that we want.  We rename the columns to be consistent with the data warehouse table and save the data to the bea.data data frame:  
+
+```{r, warning=FALSE}
+for(st in states){
+  # Unzip the data
+  file <- paste0(bea.table.name, '_1969_2000_', st, '.csv')
+  unzip(zip.file, file)
+  # Read the data
+  temp <- read.csv(file)
+  # Delete the csv file
+  file.remove(file)
+  # Transform data from wide to long
+  temp <- melt(temp, id.vars=names(temp)[1:7])
+  # Remove the X from the year
+  temp$variable <- gsub('X', '', temp$variable)
+  # change year type to integer
+  temp$variable <- as.numeric(temp$variable)
+  # Change the line code type to match the data warehouse table
+  temp$LineCode <- as.character(temp$LineCode)
+  # Filter data from 1999 forward and select only certain columns
+  temp <- temp %>%
+    filter(variable>=1999) %>%
+    select(GeoFIPS, GeoName, LineCode, Description, value, variable)
+  # Special handeling of the US file
+  if(st == 'US'){
+    temp <- temp %>%
+    filter(GeoFIPS=='00000')
+  }
+  # Rename columns to match the Data Warehouse Table
+  names(temp) <-  c('GeoFips', 'GeoName', 'LineCode', 'Description', 'Estimate', 'Year')
+  # Save cleaned data into bea.data
+  if(!exists('bea.data')){
+    bea.data <- temp
+  } else{
+    # Append the temp data to bea.data
+    bea.data <- rbind(bea.data, temp)
+  }
+}
+```
+
+## Step 5: Save Processed Data ##
+
+Now that we have the clean data we need to store it as an Excel file:  
+
+```{r}
+write.xlsx2(bea.data, raw.data.file.path, sheetName = paste0(data.warehouse.table.name,'_UPDATE'), row.names = FALSE)
+```
