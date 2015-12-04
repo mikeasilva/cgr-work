@@ -5,7 +5,7 @@ Created on Mon Nov 23 10:17:27 2015
 @author: Michael Silva
 """
 
-referenceYear = 2013
+referenceYear = 2014
 periodCovered = 5 #year(s)
 # This dictionary has the state's abreviation followed by the name as found in the download URL from the line above
 stateDict = {'NY':'NewYork', 'FL':'Florida'}
@@ -15,8 +15,7 @@ nyTables = {'B08013', 'B08105A', 'B08105B', 'B08105D', 'B08105I', 'B08134', 'B08
 flTables = {'B08013', 'B08134', 'B15002', 'B15010', 'B17001', 'B17005', 'B17010', 'B19013', 'B25064', 'B25077', 'B25119'}
 acsTables = {'NY':nyTables, 'FL':flTables}
 
-baseURL = 'http://www2.census.gov/acs' + str(referenceYear) + '_' + str(periodCovered) + 'yr/summaryfile/'
-downloadURL = baseURL + '2009-2013_ACSSF_By_State_By_Sequence_Table_Subset/'
+downloadURL = 'http://www2.census.gov/programs-surveys/acs/summary_file/2014/data/5_year_seq_by_state/'
 
 #==============================================================================
 #================  You shouldn't have to edit below this line  ================
@@ -25,7 +24,7 @@ downloadURL = baseURL + '2009-2013_ACSSF_By_State_By_Sequence_Table_Subset/'
 # Load the libraries we need
 import pandas as pd
 import numpy as np
-import requests, zipfile, StringIO, os
+import requests, zipfile, StringIO, os, natsort
 
 # This will be used later to convert the line number floats to text integers
 def flotToInt(text):
@@ -42,7 +41,7 @@ def validMetaData(n):
     
 # Get the Sequence & Table Numbers
 print('Downloading Sequence and Table Number Lookup')
-lookupURL = baseURL + 'Sequence_Number_and_Table_Number_Lookup.txt'
+lookupURL = 'http://www2.census.gov/programs-surveys/acs/summary_file/2014/documentation/user_tools/ACS_5yr_Seq_Table_Number_Lookup.txt'
 converter = {'Sequence Number': np.str} # Change the data type from the default way pandas reads it in
 lookup = pd.read_csv(lookupURL, converters=converter)
 # Change the string numbers to actual numbers
@@ -98,7 +97,8 @@ for stateAbreviation, stateName in stateDict.iteritems():
             
             print('Getting ' + acsTable + ' data')
             # Download the ACS data        
-            zipFileName = str(referenceYear) + str(periodCovered) + stateAbreviation.lower() + sequenceNumber + '000.zip'
+            leading_zeros = '0' * (4 - len(sequenceNumber))
+            zipFileName = str(referenceYear) + str(periodCovered) + stateAbreviation.lower() + leading_zeros + sequenceNumber + '000.zip'
             tableURL = stateDownloadURL + zipFileName
             r = requests.get(tableURL)
             # Extract the files
@@ -117,9 +117,9 @@ for stateAbreviation, stateName in stateDict.iteritems():
             moe.columns = moeColumnNames
     
             # Select the columns with the ACS table name in their name
-            estCols = columnStart + [col for col in estimate.columns if acsTable in col]
+            estCols = columnStart + [col for col in estimate.columns if acsTable+'_' in col]
             estimate = estimate[estCols]
-            moeCols = columnStart + [col for col in moe.columns if acsTable in col]
+            moeCols = columnStart + [col for col in moe.columns if acsTable+'_' in col]
             moe = moe[moeCols]
             
             # Now we are ready to merge the estimate, moe and geography data frames
@@ -139,14 +139,16 @@ for stateAbreviation, stateName in stateDict.iteritems():
             geoCols = ['GEOID', 'NAME']
             columnNames.extend(geoCols)
             unsortedCols = list(set(acsData.columns) - set(columnStart) - set(geoCols))
-            sortedCols = sorted(unsortedCols)
+            sortedCols = natsort.natsorted(unsortedCols, key=lambda y: y.lower())
             columnNames.extend(sortedCols)
             
             # Create the data frame with the columns we want in the right order
             acsData = acsData[columnNames]
+            # Drop GeoID
+            acsData = acsData.drop('GEOID', 1)
     
             # Save the ACS data as an Excel file
-            fileName = acsTable + '-' + stateAbreviation + '.xlsx'
+            fileName = stateAbreviation + '/' + acsTable + '.xlsx'
             print('Saving ' + fileName)
             acsData.to_excel(fileName, index=False)
             

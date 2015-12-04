@@ -5,7 +5,7 @@ Created on Mon Nov 23 10:17:27 2015
 @author: Michael Silva
 """
 
-referenceYear = 2013
+referenceYear = 2009
 periodCovered = 5 #year(s)
 # This dictionary has the state's abreviation followed by the name as found in the download URL from the line above
 stateDict = {'NY':'NewYork', 'FL':'Florida'}
@@ -15,8 +15,8 @@ nyTables = {'B08013', 'B08105A', 'B08105B', 'B08105D', 'B08105I', 'B08134', 'B08
 flTables = {'B08013', 'B08134', 'B15002', 'B15010', 'B17001', 'B17005', 'B17010', 'B19013', 'B25064', 'B25077', 'B25119'}
 acsTables = {'NY':nyTables, 'FL':flTables}
 
-baseURL = 'http://www2.census.gov/acs' + str(referenceYear) + '_' + str(periodCovered) + 'yr/summaryfile/'
-downloadURL = baseURL + '2009-2013_ACSSF_By_State_By_Sequence_Table_Subset/'
+baseURL = 'http://www2.census.gov/acs2005_2009_5yr/summaryfile/'
+downloadURL = baseURL + '2005-2009_ACSSF_By_State_By_Sequence_Table_Subset/'
 
 #==============================================================================
 #================  You shouldn't have to edit below this line  ================
@@ -25,7 +25,9 @@ downloadURL = baseURL + '2009-2013_ACSSF_By_State_By_Sequence_Table_Subset/'
 # Load the libraries we need
 import pandas as pd
 import numpy as np
-import requests, zipfile, StringIO, os
+import requests, zipfile, StringIO, os, time
+
+start_time = time.time()
 
 # This will be used later to convert the line number floats to text integers
 def flotToInt(text):
@@ -42,9 +44,9 @@ def validMetaData(n):
     
 # Get the Sequence & Table Numbers
 print('Downloading Sequence and Table Number Lookup')
-lookupURL = baseURL + 'Sequence_Number_and_Table_Number_Lookup.txt'
+lookupURL = baseURL + 'Sequence_Number_and_Table_Number_Lookup.xls'
 converter = {'Sequence Number': np.str} # Change the data type from the default way pandas reads it in
-lookup = pd.read_csv(lookupURL, converters=converter)
+lookup = pd.read_excel(lookupURL, converters=converter)
 # Change the string numbers to actual numbers
 lookup['Line Number'] = pd.to_numeric(lookup['Line Number'], errors='coerce')
 sequenceNumbers = lookup[['Table ID','Sequence Number']].drop_duplicates()
@@ -55,18 +57,20 @@ for stateAbreviation, stateName in stateDict.iteritems():
     stateDownloadURL = downloadURL + stateName + '/All_Geographies_Not_Tracts_Block_Groups/'
     
     # Grab the geography file once although we will use it more than once
-    geoFileName = 'g' + str(referenceYear) + str(periodCovered) + stateAbreviation.lower() + '.csv'    
+    geoFileName = 'g' + str(referenceYear) + str(periodCovered) + stateAbreviation.lower() + '.txt'
     geoURL = stateDownloadURL + geoFileName
     converter = {0: np.str, 1: np.str, 2: np.str, 3: np.str, 4: np.str} # make these variables strings
-    geo = pd.read_csv(geoURL, header=None, converters=converter, low_memory=False)
+    #geo_columns = ['FILEID', 'STUSAB', 'SUMLEVEL', 'COMPONENT', 'LOGRECNO', 'US', 'REGION', 'DIVISION', 'STATECE', 'STATE', 'COUNTY', 'COUSUB', 'PLACE', 'TRACT', 'BLKGRP', 'CONCIT', 'AIANHH', 'AIANHHFP', 'AIHHTLI', 'AITSCE', 'AITS', 'ANRC', 'CBSA',  'CSA', 'METDIV', 'MACC', 'MEMI', 'NECTA', 'CNECTA', 'NECTADIV ', 'UA', 'BLANK', 'CDCURR', 'SLDU', 'SLDL', 'BLANK', 'BLANK', 'ZCTA5', 'SUBMCD', 'SDELM', 'SDSEC', 'SDUNI', 'UR', 'PCI', 'BLANK', 'BLANK', 'PUMA5', 'BLANK', 'GEOID', 'NAME', 'BTTR', 'BTBG', 'BLANK']
+    geo_widths = [6,2,3,2,7,1,1,1,2,2,3,5,5,6,1,5,4,5,1,3,5,5,5,3,5,1,1,5,3,5,5,5,2,3,3,6,3,5,5,5,5,5,1,1,6,5,5,5,40,200,50]
+    geo = pd.read_fwf(geoURL, header=None, widths=geo_widths, converters=converter)
     # Rename data frame
-    geo.columns = ['FILEID', 'STUSAB', 'SUMLEVEL', 'COMPONENT', 'LOGRECNO', 'US', 'REGION', 'DIVISION', 'STATECE', 'STATE', 'COUNTY', 'COUSUB', 'PLACE', 'TRACT', 'BLKGRP', 'CONCIT', 'AIANHH', 'AIANHHFP', 'AIHHTLI', 'AITSCE', 'AITS', 'ANRC', 'CBSA',  'CSA', 'METDIV', 'MACC', 'MEMI', 'NECTA', 'CNECTA', 'NECTADIV ', 'UA', 'BLANK', 'CDCURR', 'SLDU', 'SLDL', 'BLANK', 'BLANK', 'ZCTA5', 'SUBMCD', 'SDELM', 'SDSEC', 'SDUNI', 'UR', 'PCI', 'BLANK', 'BLANK', 'PUMA5', 'BLANK', 'GEOID', 'NAME', 'BTTR', 'BTBG', 'BLANK']
-    # Grab only the columns that we want
+    geo.columns = ['FILEID', 'STUSAB', 'SUMLEVEL', 'COMPONENT', 'LOGRECNO', 'US', 'REGION', 'DIVISION', 'STATECE', 'STATE', 'COUNTY', 'COUSUB', 'PLACE', 'TRACT', 'BLKGRP', 'CONCIT', 'AIANHH', 'AIANHHFP', 'AIHHTLI', 'AITSCE', 'AITS', 'ANRC', 'CBSA',  'CSA', 'METDIV', 'MACC', 'MEMI', 'NECTA', 'CNECTA', 'NECTADIV ', 'UA', 'BLANK', 'CDCURR', 'SLDU', 'SLDL', 'BLANK', 'BLANK', 'BLANK', 'SUBMCD', 'SDELM', 'SDSEC', 'SDUNI', 'UR', 'PCI', 'BLANK', 'BLANK', 'PUMA5', 'BLANK', 'GEOID', 'NAME', 'BLANK']
+        # Grab only the columns that we want
     geo = geo[['LOGRECNO', 'GEOID', 'NAME']]
     
     # Iterate through the table list
     for acsTable in acsTables[stateAbreviation]:
-         # Get the sequence number for the acs table
+        # Get the sequence number for the acs table
         sequenceNumber = sequenceNumbers['Sequence Number'].values[sequenceNumbers['Table ID'].values == acsTable]
         if len(sequenceNumber) == 0:
             print('************************* Table '+acsTable+' Not Downloadable *************************')
@@ -97,8 +101,9 @@ for stateAbreviation, stateName in stateDict.iteritems():
             moeColumnNames.extend(metaData['moeColumnName'].tolist())
             
             print('Getting ' + acsTable + ' data')
-            # Download the ACS data        
-            zipFileName = str(referenceYear) + str(periodCovered) + stateAbreviation.lower() + sequenceNumber + '000.zip'
+            # Download the ACS data
+            leading_zeros = '0' * (4 - len(sequenceNumber))
+            zipFileName = str(referenceYear) + str(periodCovered) + stateAbreviation.lower() + leading_zeros + sequenceNumber + '000.zip'
             tableURL = stateDownloadURL + zipFileName
             r = requests.get(tableURL)
             # Extract the files
@@ -146,10 +151,13 @@ for stateAbreviation, stateName in stateDict.iteritems():
             acsData = acsData[columnNames]
     
             # Save the ACS data as an Excel file
-            fileName = acsTable + '-' + stateAbreviation + '.xlsx'
+            fileName = stateAbreviation + '/' + acsTable + '.xlsx'
             print('Saving ' + fileName)
             acsData.to_excel(fileName, index=False)
             
             # Delete the files we unzipped
             os.remove(ZipNameList[0])
             os.remove(ZipNameList[1])
+        
+end_time = time.time()
+print "%.2gs" % (end_time - start_time)
