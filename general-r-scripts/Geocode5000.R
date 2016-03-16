@@ -129,6 +129,6 @@ geocode5000 <- function(address.vector, api.key = FALSE){
     # Display the progress
     setTxtProgressBar(pb, i)
   }
-  write.table(geocoded, file="~/geocoded.csv", sep=",", row.names=FALSE)
+  write.table(geocoded, file="geocoded.csv", sep=",", row.names=FALSE)
 
 }
