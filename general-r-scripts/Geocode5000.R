@@ -1,9 +1,3 @@
-#allzips <- read.csv('~/allzips.csv', colClasses = "character")
-# Remove all but the zip code
-#allzips <- allzips$Zip.Code
-# Remove the duplicates
-#allzips <- allzips[!duplicated(allzips)]
-
 geocode5000 <- function(address.vector, api.key = FALSE){
   # Initialize the variables
   if(api.key == FALSE){
@@ -132,3 +126,7 @@ geocode5000 <- function(address.vector, api.key = FALSE){
   write.table(geocoded, file="geocoded.csv", sep=",", row.names=FALSE)
 
 }
+
+df <- read.csv('geocode_me.csv', colClasses = "character")
+df$full_address <- paste(df$Address, df$City, ',', df$State, df$Zip_code)
+suppressMessages(geocode5000(df$full_address))
