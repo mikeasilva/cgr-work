@@ -1,0 +1,327 @@
+---
+title: "Town of Amherst Dot Density Maps"
+author: "by Mike Silva"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+This R Markdown document explains what you need to do in order to create a dot density map.  It is "self-contained" meaning that it will download all files you will need.  Inspiration for this dot density map comes from [Robert Manduca's map](http://www.robertmanduca.com/projects/jobs.html)
+
+## Step 1: Install Necessary Packages
+
+In order to create the dot density map you will need to have the following packages installed:
+
+```{r, eval=FALSE}
+install.packages('R.utils')
+install.packages('dplyr')
+install.packages('rgdal')
+install.packages('maptools')
+install.packages('ggplot2')
+install.packages('ggmap') 
+```
+
+## Step 2: Download the Data
+
+To create this map I will be using the [Longitudinal Employer-Household Dynamics Origin-Destination Employment Statistics (LODES)](http://lehd.ces.census.gov/data/) produced by the U.S. Census Bureau.  Since I live near Rochester New York I will be producing a map for my local county.  First I will need to download the LODES data and a geographic crosswalk:
+
+```{r, message=FALSE}
+url <- 'http://lehd.ces.census.gov/data/lodes/LODES7/ny/wac/ny_wac_S000_JT00_2013.csv.gz'
+
+geography.crosswalk.url <- 'http://lehd.ces.census.gov/data/lodes/LODES7/ny/ny_xwalk.csv.gz'
+
+download.file(url, 'lodes.csv.gz')
+download.file(geography.crosswalk.url, 'xwalk.csv.gz')
+```
+
+According to the [techical documentation](http://lehd.ces.census.gov/data/lodes/LODES7/LODESTechDoc7.1.pdf) the LODES version 7.1 is enumerated with 2010 census blocks.  I will need to [download the census block shapefiles](https://www.census.gov/geo/maps-data/data/cbf/cbf_blkgrp.html):
+
+```{r, message=FALSE}
+shapefile.url <- 'http://www2.census.gov/geo/tiger/GENZ2010/gz_2010_36_150_00_500k.zip'
+download.file(shapefile.url, 'shapefile.zip')
+```
+
+## Step 3: Decompress the Downloaded Data
+
+Since the shapefiles and LODES data is compressed the next step is to decompress it:
+
+```{r, message=FALSE, warning=FALSE}
+library(R.utils)
+gunzip('lodes.csv.gz')
+gunzip('xwalk.csv.gz')
+unzip('shapefile.zip')
+```
+
+## Step 4: Load the Data into R
+
+Now that we have uncompressed data we need to load it into R.  The [techical documentation](http://lehd.ces.census.gov/data/lodes/LODES7/LODESTechDoc7.1.pdf) states that the first variable (w_geocode) is a 15 character string and all other variables are numbers.  The default read.csv does not read it in correctly so we will need to parse the file using the colClasses:
+
+```{r}
+lodes <- read.csv('lodes.csv', nrows = 1)
+col.classes <- c('character', rep('numeric', ncol(lodes)-1))
+lodes <- read.csv('lodes.csv', colClasses = col.classes)
+```
+
+Now we need to load in the geography crosswalk.  Once again refering to the [techical documentation](http://lehd.ces.census.gov/data/lodes/LODES7/LODESTechDoc7.1.pdf) we see that all variables are character strings.  The default read.csv does not read it in correctly so we will need to parse the file again using the colClasses:
+
+```{r}
+xwalk <- read.csv('xwalk.csv', nrows=1)
+col.classes <- rep('character', ncol(xwalk))
+xwalk <- read.csv('xwalk.csv', colClasses = col.classes)
+```
+
+Currently I have `r nrow(lodes)` records in the lodes data frame.  As previously stated I will be producing a map for Amherst NY so I will not need all of them:
+
+```{r, message=FALSE}
+library(dplyr)
+
+lodes <- xwalk %>%
+  filter(ctycsubname == 'Amherst town (Erie, NY)') %>%
+  select(tabblk2010) %>%
+  rename(w_geocode = tabblk2010) %>%
+  merge(., lodes)
+```
+
+So after filtering I have `r nrow(lodes)` records in the lodes data frame.
+
+```{r, echo=FALSE}
+rm(xwalk, col.classes) # Just a little housekeeping
+```
+
+## Step 5: Load the Shapefile into R
+
+In order to merge the LODES data with the shapefile data frame I need to create a GEO_ID field.  The LODES data has more detail so we will need to aggregate it up:
+
+```{r, message=FALSE, warning=FALSE}
+lodes <- lodes %>%
+  mutate(GEO_ID = paste0('1500000US', w_geocode)) %>%
+  mutate(GEO_ID = substr(GEO_ID,1,21)) %>%
+  select(-w_geocode, -createdate) %>%
+  group_by(GEO_ID) %>%
+  summarise_each(funs(sum))
+```
+
+After aggregating, the lodes data frame has `r nrow(lodes)` records.  Now we can merge this into the shapefile:
+
+```{r, message=FALSE, warning=FALSE}
+library(rgdal)
+blocks <-  readOGR('.','gz_2010_36_150_00_500k')
+# Only select Erie County, NY
+blocks <- blocks[blocks$COUNTY=='029',]
+# Merge in LODES data
+blocks@data = data.frame(blocks@data, lodes[match(blocks@data$GEO_ID, lodes$GEO_ID),])
+blocks <- blocks[!is.na(blocks$C000),]
+```
+
+
+# Step 6: Create the Dot Plot Maps
+
+Now that we have the LODES data merged into the shapefile we can create our dot plot map.  In this example I will use the base plot function ([hat tip to Chris Inkpen](http://rstudio-pubs-static.s3.amazonaws.com/13730_f008288ab83c43ea978f222d0dfe8299.html)):
+
+```{r, message=FALSE, warning=FALSE}
+library(maptools)
+# This function will help clean and scale varriables
+clean_vars <- function(var, scale=10){
+  var[is.na(var)] <- 0
+  var / scale
+}
+
+# Create dot density map by getting total jobs
+#plotvar <- clean_vars(blocks@data$C000, 10)
+# Spread these dots evenly across the polygon's area
+#dots <- dotsInPolys(blocks, as.integer(plotvar), f='regular')
+# Create the map
+#plot(blocks)
+#plot(dots, add = T, pch = 19, cex = 0.5, col = 'blue')
+#plot(blocks, add = T)
+#title('Total number of jobs 2013, each dot=10')
+```
+
+This is nice but we can create more interesting maps.  First let's create some sector employment data:
+
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
+# Use the clean_vars function described in the previous block
+dots.a <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$CNS10 + blocks@data$CNS11)))
+dots.a$sector <-'Finance'
+
+dots.b <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$CNS12 + blocks@data$CNS13 + blocks@data$CNS14)))
+dots.b$sector <-'Business'
+
+dots.c <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$CNS15 + blocks@data$CNS16)), f = 'regular')
+dots.c$sector <-'Ed & Health'
+
+dots.d <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$CNS05)), f = 'regular')
+dots.d$sector <-'Manufacturing'
+
+dots.e <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$CNS09)), f = 'regular')
+dots.e$sector <-'Information'
+
+dots.f <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$CNS03 + blocks@data$CNS06 + blocks@data$CNS07 + blocks@data$CNS08)), f = 'regular')
+dots.f$sector <-'Trade, Trans & Util.'
+
+dots.g <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$CNS01 + blocks@data$CNS02 + blocks@data$CNS04 + blocks@data$CNS17 + blocks@data$CNS18 + blocks@data$CNS19 + blocks@data$CNS20)), f = 'regular')
+dots.g$sector <-'All Others'
+
+
+# Merge these points together into one object
+dots <- spRbind(dots.a, dots.b) %>%
+  spRbind(., dots.c) %>%
+  spRbind(., dots.d) %>%
+  spRbind(., dots.e) %>%
+  spRbind(., dots.f) %>%
+  spRbind(., dots.g)
+
+# Create a data frame other packages can use
+df <- data.frame(coordinates(dots)[,1:2], sector=dots$sector)
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+rm(dots.a, dots.b, dots.c, dots.d, dots.e, dots.f, dots.g) # More housekeeping
+```
+
+Now let's plot it using the ggplot2 package:
+
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
+library(ggplot2)
+ggplot(blocks, aes(x = long, y = lat)) + 
+  geom_polygon(aes(group = group), colour = I('grey65'), fill='white', size=0.2) + 
+  coord_equal() +  
+  geom_point(data=df, aes(x=x,y=y, colour = factor(sector)), size=0.8, alpha=0.5) + 
+  theme(legend.position='bottom', legend.title=element_blank(), axis.ticks=element_blank(), axis.text=element_blank(), axis.title=element_blank()) +
+  ggtitle('Total jobs by sector 2013, each dot=10') +
+  coord_fixed() + 
+  guides(colour = guide_legend(override.aes = list(size=10)))
+```
+
+Now what if we wanted to overlay the data on a Google Map?
+
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
+library(ggmap)
+
+amherst = blocks
+amherst@data$id = rownames(amherst@data)
+amherst.points = fortify(amherst, region="id")
+amherst.df = join(amherst.points, amherst@data, by="id")
+  
+  
+temp <- blocks %>%
+  spTransform(., CRS('+proj=longlat +datum=WGS84')) %>%
+  fortify(.)
+
+max.lat <- max(temp$lat)
+min.lat <- min(temp$lat)
+mean.lat <- (max.lat + min.lat)/2
+
+max.lon <- max(temp$long)
+min.lon <- min(temp$long)
+mean.lon <- (max.lon + min.lon)/2
+
+gmap <- get_map(c(lon=mean.lon, lat=mean.lat),
+    maptype = "terrain", zoom=12)
+
+ggmap(gmap) + 
+   geom_polygon(data=blocks, aes(x = long, y = lat, group = group), colour = I('grey65'), fill=NA, size=0.2) +
+  geom_point(data=df, aes(x=x,y=y, colour = factor(sector)), size=0.8, alpha=0.5) + 
+  theme(legend.position='bottom', legend.title=element_blank(), axis.ticks=element_blank(), axis.text=element_blank(), axis.title=element_blank()) +
+  ggtitle('Total jobs by sector 2013, each dot=10') + 
+  guides(colour = guide_legend(override.aes = list(size=10))) +
+  scale_colour_brewer(palette="Set1")
+```
+
+### Amherst IDA
+
+```{r, eval=FALSE, echo=FALSE}
+library(sp)
+library(rgdal)
+## Load in geocoded data
+aida <- read.csv('aida.csv')
+## Create data frame with lat and long
+locations <- SpatialPointsDataFrame(coords=aida[, c("Lng", "Lat")],
+          data=as.data.frame(aida$Address),
+          proj4string=CRS("+proj=longlat +datum=WGS84"))
+## Find which block the point lies in
+locations_block <- spTransform(x=blocks, CRSobj=CRS("+proj=longlat +datum=WGS84")) %>%
+  over(x=locations, y=.)
+## Pull the block into the point data frame
+locations@data <- data.frame(locations@data, locations_block)
+write.csv(locations@data,'locations.csv', row.names=FALSE)
+```
+
+```{r}
+library(tidyr)
+library(ggmap)
+aida <- read.csv('AIDA-Map-Data.csv') %>%
+  select(GEO_ID, Sector, CGR.Emp) %>%
+  group_by(GEO_ID, Sector) %>%
+  summarize(CGR.Emp = sum(CGR.Emp)) %>%
+  spread(Sector, CGR.Emp, fill=0)
+
+blocks@data = data.frame(blocks@data, aida[match(blocks@data$GEO_ID, aida$GEO_ID),])
+
+# Use the clean_vars function described in the previous block
+dots.a <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$Financial.Activities,1)))
+dots.a$sector <-'Finance'
+
+dots.b <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$Professional.and.Business.Services,1)))
+dots.b$sector <-'Business'
+
+dots.c <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$Education.and.Health.Services,1)), f = 'regular')
+dots.c$sector <-'Ed & Health'
+
+dots.d <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$Manufacturing,1)), f = 'regular')
+dots.d$sector <-'Manufacturing'
+
+dots.e <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$Information,1)), f = 'regular')
+dots.e$sector <-'Information'
+
+dots.f <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$Trade..Transportation..and.Utilities,1)), f = 'regular')
+dots.f$sector <-'Trade, Trans & Util.'
+
+dots.g <- dotsInPolys(blocks, as.integer(clean_vars(blocks@data$Government + blocks@data$Leisure.and.Hospitality + blocks@data$Natural.Resources..Mining.and.Construction,1)), f = 'regular')
+dots.g$sector <-'All Others'
+
+
+blocks@data$AIDA.Total = blocks@data$Financial.Activities + blocks@data$Professional.and.Business.Services + blocks@data$Education.and.Health.Services + blocks@data$Manufacturing + blocks@data$Information + blocks@data$Trade..Transportation..and.Utilities + blocks@data$Government + blocks@data$Leisure.and.Hospitality + blocks@data$Natural.Resources..Mining.and.Construction
+
+blocks@data$AIDA.Share = ifelse(is.na(blocks@data$AIDA.Total),0,blocks@data$AIDA.Total / blocks@data$C000)
+
+# Merge these points together into one object
+dots <- spRbind(dots.a, dots.b) %>%
+  spRbind(., dots.c) %>%
+  spRbind(., dots.d) %>%
+  spRbind(., dots.e) %>%
+  spRbind(., dots.f) %>%
+  spRbind(., dots.g)
+
+rm(dots.a, dots.b, dots.c, dots.d, dots.e, dots.f, dots.g) # More housekeeping
+
+# Create a data frame other packages can use
+df <- data.frame(coordinates(dots)[,1:2], sector=dots$sector)
+  
+temp <- blocks %>%
+  spTransform(., CRS('+proj=longlat +datum=WGS84')) %>%
+  fortify(.)
+
+mean.lat <- (max(temp$lat) + min(temp$lat))/2
+mean.lon <- (max(temp$long) + min(temp$long))/2
+
+gmap <- get_map(c(lon=mean.lon, lat=mean.lat),
+    maptype = "terrain", zoom=12)
+
+ggmap(gmap) + 
+   geom_polygon(data=blocks, aes(x = long, y = lat, group = group), colour = I('grey65'), fill=NA, size=0.2) +
+  geom_point(data=df, aes(x=x,y=y, colour = factor(sector)), size=0.8, alpha=0.5) + 
+  theme(legend.position='bottom', legend.title=element_blank(), axis.ticks=element_blank(), axis.text=element_blank(), axis.title=element_blank()) +
+  guides(colour = guide_legend(override.aes = list(size=10))) +
+  scale_colour_brewer(palette="Set1")
+
+cgr.colors <- c('#f07f09', '#9f2936', '#1b587c', '#4e8542', '#604878', '#c19859', '#904c05')
+
+ggmap(gmap) + 
+   geom_polygon(data=blocks, aes(x = long, y = lat, group = group), colour = I('grey65'), fill=NA, size=0.2) +
+  geom_point(data=df, aes(x=x,y=y, colour = factor(sector)), size=0.8, alpha=0.5) + 
+  theme(legend.position='bottom', legend.title=element_blank(), axis.ticks=element_blank(), axis.text=element_blank(), axis.title=element_blank()) +
+  guides(colour = guide_legend(override.aes = list(size=10))) +
+  scale_colour_manual(values = cgr.colors)
+```
