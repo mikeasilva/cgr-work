@@ -27,5 +27,10 @@ print('Appending to lodes table')
 df.to_sql('lodes', con, if_exists='append', index=False)
 con.commit()
 
+print('Adding in indexes')
+c = con.cursor()
+c.execute("CREATE INDEX `h_geocode` ON `lodes` (`h_geocode` )")
+c.execute("CREATE INDEX `w_geocode` ON `lodes` (`w_geocode` )")
+
 con.close()
 print('Done')
