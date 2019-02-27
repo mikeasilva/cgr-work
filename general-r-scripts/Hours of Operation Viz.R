@@ -10,7 +10,7 @@ get_day <- function(time){
          Sun = 7,
          Mon = 6,
          Tue = 5,
-         Wed = 4, 
+         Wed = 4,
          Thu = 3,
          Fri = 2,
          Sat = 1)
@@ -44,16 +44,16 @@ get_hour <- function(time){
          "9PM" = "21",
          "10PM" = "22",
          "11PM" = "23")
-  
+
 }
 
 get_heatmap <- function(data){
-  ggplot(data, aes(hour, day, fill=(-1*open))) + 
-    geom_tile(colour="white",size=0.25) + 
+  ggplot(data, aes(hour, day, fill=(-1*open))) +
+    geom_tile(colour="white",size=0.25) +
     coord_fixed() +
-    scale_fill_distiller(palette = "Spectral") + 
-    geom_text(aes(label=open)) + 
-    guides(fill=FALSE) + 
+    scale_fill_distiller(palette = "Spectral") +
+    geom_text(aes(label=open)) +
+    guides(fill=FALSE) +
     #labs(x="",y="") +
     scale_y_discrete(expand=c(0,0))+
     scale_x_discrete(expand=c(0,0))+
@@ -63,7 +63,7 @@ get_heatmap <- function(data){
       panel.border=element_blank(),
       axis.text=element_text(face="bold"),
       axis.ticks=element_line(size=0.4),
-      panel.grid.major = element_blank(), 
+      panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       axis.title.x=element_blank(),
       axis.text.x=element_blank(),
@@ -72,7 +72,7 @@ get_heatmap <- function(data){
       axis.text.y=element_blank(),
       axis.ticks.y=element_blank()
     )
-  
+
 }
 
 df <- read.xlsx('G:/2018 Projects/813-Walmart-NW AR Food Insecurity Study/Maps/Data for Map.xlsx', 'hrs') %>%
