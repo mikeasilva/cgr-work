@@ -1,0 +1,145 @@
+---
+title: "Project Budget Forecast"
+author: "CGR"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+source('Create Remaining Budgets.R')
+rm(cgr)
+library(openxlsx)
+library(dplyr)
+library(fpp2)
+library(kableExtra)
+
+forecast_window <- 6
+
+bimonthly <- function(x){
+  month <- substr(x, 6, 7)
+  day <- substr(x, 9, 10)
+  if(day == "30"){
+    day <- 2
+  } else {
+    day <- 1
+  }
+  (as.numeric(month) * 2) + day
+}
+
+df_to_ts <- function(df) {
+  start <- min(df$date)
+  start_bimonthly <- bimonthly(start)
+  start <- as.numeric(substr(start, 1, 4))
+  end <- max(df$date)
+  end_bimonthly <- bimonthly(end)
+  end <- as.numeric(substr(end, 1, 4))
+
+  ts(as.numeric(df$Remain.Budget), 
+     start = c(start, start_bimonthly),
+     freq = 26)
+}
+```
+
+
+```{r data, echo=FALSE}
+df <- read.xlsx("Remaining Budgets.xlsx", detectDates=TRUE)
+
+latest_date <- max(df$date)
+
+df <- df %>%
+  filter(date == latest_date) %>%
+  select(Project.Number) %>%
+  merge(df) %>%
+  arrange(Project.Number, date)
+```
+
+
+
+```{r forecasts, echo=FALSE}
+forecast_report <- function(df, project_numbers){
+  for (project_number in project_numbers){
+    temp <- filter(df, Project.Number == project_number)
+    project_name <- trimws(unique(temp$Project.Name))
+    cat(paste("<h3>", project_name, "-", project_number, "</h3>"))
+    temp <- temp %>%
+      select(date, Remain.Budget)
+    
+    temp_ts <- df_to_ts(temp)
+    
+    if(length(temp_ts) > 1){
+      f <- holt(temp_ts, h = forecast_window)
+      title <- paste("Based off of",min(temp$date), "to", max(temp$date),"data")
+      plot <- autoplot(f) +
+        ggtitle(title) +
+        ylab("Remaining Budget") +
+        theme(
+          axis.title.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank())
+      print(plot)
+      table <- f %>% as.data.frame()
+      row.names(table) <- NULL
+      table <- table %>% kable() %>% kable_styling()
+      print(table)
+    } else {
+      cat("<h4>Not Enough Data for a Forecast</h4>")
+      table <- temp %>% kable() %>% kable_styling()
+      print(table)
+    }
+  }
+}
+```
+
+
+```{r, eval=FALSE, echo=FALSE}
+table(df$Project.Manager)
+```
+## Paul Bishop
+
+```{r, echo=FALSE}
+temp <- df %>%
+  filter(Project.Manager == "Bishop, Paul") 
+project_numbers <- unique(na.omit(temp$Project.Number))
+```
+
+```{r, echo=FALSE, results='asis'}
+forecast_report(df, project_numbers)
+```
+
+## Kent Gardner
+
+```{r, echo=FALSE}
+temp <- df %>%
+  filter(Project.Manager == "Gardner, Kent") 
+project_numbers <- unique(na.omit(temp$Project.Number))
+```
+
+```{r, echo=FALSE, results='asis'}
+forecast_report(df, project_numbers)
+```
+
+## Erika Rosenberg
+
+```{r, echo=FALSE}
+temp <- df %>%
+  filter(Project.Manager == "Rosenberg, Erika") 
+project_numbers <- unique(na.omit(temp$Project.Number))
+```
+
+```{r, echo=FALSE, results='asis'}
+forecast_report(df, project_numbers)
+```
+
+## Joseph Stefko
+
+```{r, echo=FALSE}
+temp <- df %>%
+  filter(Project.Manager == "Stefko, Joseph") 
+project_numbers <- unique(na.omit(temp$Project.Number))
+```
+
+```{r, echo=FALSE, results='asis'}
+forecast_report(df, project_numbers)
+```
