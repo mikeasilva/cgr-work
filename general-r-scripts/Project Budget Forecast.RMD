@@ -1,0 +1,146 @@
+---
+title: "Remaining Budget Forecast"
+author: "CGR"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+source('Create Remaining Budgets.R')
+rm(cgr)
+library(openxlsx)
+library(dplyr)
+library(prophet)
+library(kableExtra)
+library(ggplot2)
+forecast_window <- 6 * 14
+```
+
+
+```{r data, echo=FALSE}
+df <- read.xlsx("Remaining Budgets.xlsx", detectDates=TRUE)
+
+latest_date <- max(df$date)
+
+df <- df %>%
+  filter(date == latest_date) %>%
+  select(Project.Number) %>%
+  merge(df) %>%
+  arrange(Project.Number, date) %>%
+  mutate(ds = as.character(date), 
+         y = Remain.Budget)
+```
+
+
+
+```{r forecasts, echo=FALSE, warning=FALSE, message=FALSE}
+forecast_report <- function(df, project_numbers){
+  for (project_number in project_numbers){
+    temp <- filter(df, Project.Number == project_number)
+    project_name <- trimws(unique(temp$Project.Name))
+    cat(paste("<h3>", project_name, "-", project_number, "</h3>"))
+    
+    if(nrow(temp) > 1){
+      m <- suppressMessages(prophet(temp))
+      f <- make_future_dataframe(m, periods = forecast_window)
+      forecast <- predict(m, f) %>%
+        mutate(date = as.Date(ds),
+               day = substr(ds, 9,11))
+      latest_data <- max(temp$date)
+      forecast <- temp %>%
+        select(date, y) %>%
+        merge(forecast, all.y = TRUE)
+      title <- paste("Based off of",min(temp$date), "to", max(temp$date),"data")
+      #p <- plot(m, forecast, main = title, xlab = "", ylab = "") 
+      p <- ggplot(forecast, aes(date)) +
+        geom_ribbon(aes(ymin = yhat_lower, ymax = yhat_upper), fill = "skyblue1", alpha=0.5) +
+        geom_line(aes(y = yhat), color = "steelblue") +
+        geom_point(aes(y = y), na.rm=TRUE) + 
+        ggtitle(title) +
+        ylab("Remaining Budget") +
+        theme(
+          axis.title.x = element_blank(),
+          )
+      
+      print(p)
+      table <- forecast %>% 
+        filter(!is.na(y) | day == "01" | day == "15") %>%
+        filter(date > latest_data) %>%
+        rowwise() %>%
+        mutate(yhat_lower = round(yhat_lower,0),
+               yhat_upper = round(yhat_upper,0)) %>%
+        mutate(lower = ifelse(yhat_lower < 0,
+                                   cell_spec(yhat_lower, color = "red"),
+                                   cell_spec(yhat_lower, color = "black")
+                                   ),
+               upper = ifelse(yhat_upper < 0,
+                                   cell_spec(yhat_upper, color = "red"),
+                                   cell_spec(yhat_upper, color = "black")
+                                   )
+               )%>%
+        select(date, lower, upper)
+      row.names(table) <- NULL
+      table <- table %>% kable(escape = F) %>% kable_styling()
+      print(table)
+    } else {
+      cat("<h4>Not Enough Data for a Forecast</h4>")
+      table <- temp %>% select(-date, -ds, -y) %>% kable() %>% kable_styling()
+      print(table)
+    }
+  }
+}
+```
+
+
+```{r, eval=FALSE, echo=FALSE}
+table(df$Project.Manager)
+```
+## Paul Bishop
+
+```{r, echo=FALSE}
+temp <- df %>%
+  filter(Project.Manager == "Bishop, Paul") 
+project_numbers <- unique(na.omit(temp$Project.Number))
+```
+
+```{r, echo=FALSE, results='asis'}
+forecast_report(df, project_numbers)
+```
+
+## Kent Gardner
+
+```{r, echo=FALSE}
+temp <- df %>%
+  filter(Project.Manager == "Gardner, Kent") 
+project_numbers <- unique(na.omit(temp$Project.Number))
+```
+
+```{r, echo=FALSE, results='asis'}
+forecast_report(df, project_numbers)
+```
+
+## Erika Rosenberg
+
+```{r, echo=FALSE}
+temp <- df %>%
+  filter(Project.Manager == "Rosenberg, Erika") 
+project_numbers <- unique(na.omit(temp$Project.Number))
+```
+
+```{r, echo=FALSE, results='asis'}
+forecast_report(df, project_numbers)
+```
+
+## Joseph Stefko
+
+```{r, echo=FALSE}
+temp <- df %>%
+  filter(Project.Manager == "Stefko, Joseph") 
+project_numbers <- unique(na.omit(temp$Project.Number))
+```
+
+```{r, echo=FALSE, results='asis'}
+forecast_report(df, project_numbers)
+```
