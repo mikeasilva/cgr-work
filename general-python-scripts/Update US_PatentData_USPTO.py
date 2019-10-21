@@ -59,9 +59,9 @@ if download_data:
         zip_ref.close()
     
     
-    urls = ['http://www.patentsview.org/data/20171226/location.tsv.zip',
-            'http://www.patentsview.org/data/20171226/location_inventor.tsv.zip',
-            'http://www.patentsview.org/data/20171226/patent.tsv.zip',
+    urls = ['http://data.patentsview.org/20190820/download/location.tsv.zip',
+            'http://data.patentsview.org/20190820/download/location_inventor.tsv.zip',
+            'http://data.patentsview.org/20190820/download/patent.tsv.zip',
             'http://www2.census.gov/geo/tiger/GENZ2010/gz_2010_us_050_00_500k.zip']
             
     for url in urls:
@@ -183,7 +183,7 @@ df = df.append(states, ignore_index=True, sort=True).append(usa, ignore_index=Tr
 
 
 print(' Getting local data')
-engine = create_engine('mysql+pymysql://user:password@server/db')
+engine = create_engine('mysql+pymysql://dba:cgr1915@data.cgr.org/hub')
 connection = engine.connect()
 results = connection.execute("""SELECT CGR_GeographyIndex.CGR_GEO_ID, CGR_GeographyIndex.NAME, CGR_GeographyIndex.patentsview_location_id
 FROM ((CGR_GeographyIndex INNER JOIN CI_ClientGeography ON CGR_GeographyIndex.CGR_GEO_ID = CI_ClientGeography.CGR_GEO_ID) INNER JOIN CI_Client ON CI_ClientGeography.CI_Client_id = CI_Client.id) INNER JOIN CI_ClientIndicators ON CI_Client.id = CI_ClientIndicators.CI_Client_id
