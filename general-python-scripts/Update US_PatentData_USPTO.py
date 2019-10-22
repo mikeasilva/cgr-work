@@ -146,7 +146,7 @@ except:
 try:
     c.execute('SELECT * FROM patent LIMIT 1')
 except:
-    c.execute('CREATE TABLE "patent" ( `id` TEXT NOT NULL, `type` TEXT, `number` BIGINT NOT NULL, `country` TEXT, `date` DATETIME, `abstract` TEXT, `title` TEXT, `kind` TEXT, `num_claims` BIGINT NOT NULL, `filename` TEXT, PRIMARY KEY(`id`) )')
+    c.execute('CREATE TABLE "patent" ( `id` TEXT NOT NULL, `type` TEXT, `number` BIGINT NOT NULL, `country` TEXT, `date` DATETIME, `abstract` TEXT, `title` TEXT, `kind` TEXT, `num_claims` BIGINT NOT NULL, `filename` TEXT, `withdrawn` TEXT, PRIMARY KEY(`id`) )')
     db.commit()
     print(' Loading patent.tsv (This will take a while)', end="\r", flush=True)
     subprocess.call(["sqlite3", "uspto.db", ".mode tabs", ".import patent.tsv patent"])
@@ -183,7 +183,7 @@ df = df.append(states, ignore_index=True, sort=True).append(usa, ignore_index=Tr
 
 
 print(' Getting local data')
-engine = create_engine('mysql+pymysql://dba:cgr1915@data.cgr.org/hub')
+engine = create_engine('mysql+pymysql://user:password@server/db')
 connection = engine.connect()
 results = connection.execute("""SELECT CGR_GeographyIndex.CGR_GEO_ID, CGR_GeographyIndex.NAME, CGR_GeographyIndex.patentsview_location_id
 FROM ((CGR_GeographyIndex INNER JOIN CI_ClientGeography ON CGR_GeographyIndex.CGR_GEO_ID = CI_ClientGeography.CGR_GEO_ID) INNER JOIN CI_Client ON CI_ClientGeography.CI_Client_id = CI_Client.id) INNER JOIN CI_ClientIndicators ON CI_Client.id = CI_ClientIndicators.CI_Client_id
