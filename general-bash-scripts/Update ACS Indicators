@@ -1,0 +1,87 @@
+#!/bin/bash
+
+cd /media/h/Data\ Warehouse/Community\ Indicators/Scripts\ to\ Create\ Community\ Indicators/
+
+function update(){
+    if [ `date '+%F'` == "2019-12-19" ]; then
+        echo "It's time!"
+        python "Make CI_02010_US_UPDATE.py"
+        python "Make CI_02011_ASPIRE_UPDATE.py"
+        python "Make CI_02011_US_UPDATE.py"
+        python "Make CI_02017_US_UPDATE.py"
+        python "Make CI_02020_US_UPDATE.py"
+        python "Make CI_02021_US_UPDATE.py"
+        python "Make CI_02029_US_UPDATE.py"
+        python "Make CI_02030_ASPIRE_UPDATE.py"
+        python "Make CI_02031_US_UPDATE.py"
+
+        python "Make CI_04002_SUB_UPDATE.py"
+        python "Make CI_04003_SUB_UPDATE.py"
+        python "Make CI_04004_SUB_UPDATE.py"
+        python "Make CI_04005_SUB_UPDATE.py"
+        python "Make CI_04006_US_UPDATE.py"
+        python "Make CI_04008_US_UPDATE.py"
+        python "Make CI_04009_US_UPDATE.py"
+        python "Make CI_04010_US_UPDATE.py"
+        python "Make CI_04011_US_UPDATE.py"
+
+        python "Make CI_05011_US_UPDATE.py"
+        python "Make CI_05019_US_UPDATE.py"
+        python "Make CI_05019_ASPIRE_UPDATE.py"
+        python "Make CI_05024_US_UPDATE.py"
+
+        python "Make CI_06056_US_UPDATE.py"
+        python "Make CI_06057_US_UPDATE.py"
+        python "Make CI_06066_US_UPDATE.py"
+        python "Make CI_06067_US_UPDATE.py"
+        python "Make CI_06068_ASPIRE_UPDATE.py"
+        python "Make CI_06069_US_UPDATE.py"
+        python "Make CI_06070_ASPIRE_UPDATE.py"
+        python "Make CI_06071_US_UPDATE.py"
+
+        python "Make CI_08001_US_UPDATE.py"
+        python "Make CI_08002_US_UPDATE.py"
+        python "Make CI_08002_ASPIRE_UPDATE.py"
+        python "Make CI_08004_US_UPDATE.py"
+        python "Make CI_08005_US_UPDATE.py"
+        python "Make CI_08005_ASPIRE_UPDATE.py"
+        python "Make CI_08006_US_UPDATE.py"
+        python "Make CI_08007_US_UPDATE.py"
+        python "Make CI_08008_US_UPDATE.py"
+        python "Make CI_08010_US_UPDATE.py"
+        python "Make CI_08013_US_UPDATE.py"
+        python "Make CI_08018_US_UPDATE.py"
+        python "Make CI_08022_US_UPDATE.py"
+        python "Make CI_08025_US_UPDATE.py"
+        python "Make CI_08026_US_UPDATE.py"
+        python "Make CI_08027_ASPIRE_UPDATE.py"
+        python "Make CI_08028_US_UPDATE.py"
+        python "Make CI_08038_US_UPDATE.py"
+
+        python "Make CI_10002_US_UPDATE.py"
+        python "Make CI_10003_US_UPDATE.py"
+        python "Make CI_10003_ASPIRE_UPDATE.py"
+        python "Make CI_10004_US_UPDATE.py"
+        python "Make CI_10006_US_UPDATE.py"
+        python "Make CI_10010_US_UPDATE.py"
+        python "Make CI_10012_US_UPDATE.py"
+        python "Make CI_10021_ASPIRE_UPDATE.py"
+        python "Make CI_10022_ASPIRE_UPDATE.py"
+        python "Make CI_10025_US_UPDATE.py"
+        python "Make CI_10026_US_UPDATE.py"
+        python "Make CI_10027_US_UPDATE.py"
+
+        python "Make CI_12004_US_UPDATE.py"
+
+        python "Make CI_13003_US_UPDATE.py"
+        python "Make CI_13005_US_UPDATE.py"
+        python "Make CI_13006_US_UPDATE.py"
+    else
+        echo "Not time yet"
+        sleep 3600
+        update
+    fi
+}
+
+update
+date
