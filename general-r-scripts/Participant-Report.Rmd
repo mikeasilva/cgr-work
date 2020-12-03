@@ -1,0 +1,400 @@
+---
+title: "ESPRI Thrive Particpant Report"
+date: "`r paste('As of', Sys.Date())`"
+output: 
+  word_document:
+    reference_docx: do-not-delete.docx
+knit: (
+  function(input_file, encoding) {
+    output_file <- paste0(stringr::str_replace(input_file, ".Rmd", ""), "-", Sys.Date(), '.docx')
+    
+    rmarkdown::render( 
+      input       = input_file, 
+      encoding    = encoding,     
+      output_file = output_file) })
+---
+
+```{r, echo=FALSE, cache=FALSE, message=FALSE}
+library(knitr)
+library(rmdformats)
+library(dplyr)
+library(readxl)
+library(zoo)
+library(tidyr)
+library(ggplot2)
+library(pander)
+library(scales)
+## Global options
+#options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=FALSE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+#opts_knit$set(width=75)
+```
+
+```{r read_data}
+get_newest <- function(path, pattern){
+  newest <- NA
+  time <- as.POSIXct("2019-01-01T00:00:00.500-08:00" ,format="%Y-%m-%dT%H:%M:%OS")
+  for (f in list.files(path = path, pattern = pattern)){
+    full_path <- paste0(path, f)
+    ctime <- file.info(full_path)$ctime
+    if (ctime > time) {
+      time <- ctime
+      newest <- full_path
+    }
+  }
+  return(newest)
+}
+
+quick_tally <- function(df, var, header){
+  df$var <- df[[var]]
+  total <- nrow(df)
+  df <- df %>% 
+    group_by(var) %>% 
+    tally() %>%
+    mutate(total = total,
+           Percent = paste0(round((n / total) * 100, 0),"%")) %>%
+    select(-total) %>%
+    arrange(desc(n)) 
+  
+  names(df) <- c("", "Count", "Percent")
+  pander(df, big.mark = ',')
+}
+
+str_left = function(text, num_char) {
+  substr(text, 1, num_char)
+}
+ 
+str_right = function(text, num_char) {
+  substr(text, nchar(text) - (num_char-1), nchar(text))
+}
+
+employer_xlsx <- get_newest("G:/2018 Projects/850-UWBEC ESPRI THRIVE/Data/Employer Data Pulls/", "\\.xlsx$")
+osos_csv <- get_newest("G:/2018 Projects/850-UWBEC ESPRI THRIVE/Data/OSOS Data Pulls/", "\\.csv$")
+wrap_around_xlsx <- get_newest("G:/2018 Projects/850-UWBEC ESPRI THRIVE/Data/Wrap Around Data Pulls/", "\\.xlsx$")
+xwalk <- read_excel(get_newest("G:/2018 Projects/850-UWBEC ESPRI THRIVE/Data/Data Crosswalks/", "\\.xlsx$"))
+
+was_xwalk <- read_excel(get_newest("G:/2018 Projects/850-UWBEC ESPRI THRIVE/Data/Data Crosswalks/", "\\.xlsx$"), "was_xwalk")
+
+# OSOS Data
+
+osos_df <- read.csv(osos_csv) %>%
+  rename(OSOSID = OSOS.ID) %>%
+  filter(OSOSID != "")
+
+## Employer Feedback Data
+
+employer_df <- read_excel(employer_xlsx, sheet = "person")
+
+employer_df <- read_excel(employer_xlsx, sheet = "application") %>%
+  rename(job.id = application.job_id,
+         organization.id = application.organization_id,
+         person.id = application.person_id) %>%
+  merge(employer_df, all.y = TRUE)
+
+employer_df <- read_excel(employer_xlsx, sheet = "job") %>%
+  rename(company.id = job.company_id) %>%
+  merge(employer_df, all.y = TRUE)
+
+employer_df <- read_excel(employer_xlsx, sheet = "company") %>%
+  merge(employer_df, all.y = TRUE)
+
+employer_df <- read_excel(employer_xlsx, sheet = "organization") %>%
+  merge(employer_df, all.y = TRUE) %>%
+  filter(person.deleted != 1) %>%
+  arrange(person.id)
+
+wrap_around_df <- read_excel(wrap_around_xlsx, sheet = "Funds", skip = 8) %>%
+  rename(`Funds ID` = ...1,
+         Name = ...2,
+         `Staff Name` = ...3,
+         Partner = ...4) %>%
+  filter(!is.na(Name)) %>%
+  mutate(`Funds ID` = na.locf(`Funds ID`)) %>%
+  merge(xwalk) %>%
+  rename(funds_id = `Funds ID`)
+```
+## OSOS Data
+
+There are <b>`r nrow(osos_df)`</b> Thrive participants on OSOS.
+
+
+### Active or Inactive
+
+```{r}
+quick_tally(osos_df, "Status", "Active or Inactive")
+```
+
+### Cultural Barriers
+
+```{r}
+quick_tally(osos_df, "Cultural.Barriers", "Cultural Barriers")
+```
+
+### Disability Status
+
+```{r}
+quick_tally(osos_df, "Dis..Status", "Disability Status")
+```
+
+### Employment Status
+
+```{r}
+quick_tally(osos_df, "Empl.Status", "Employment Status")
+```
+
+### English Language Learner
+
+```{r}
+quick_tally(osos_df, "Eng.Lang.Learner", "English Language Learner")
+```
+
+### Veterans
+
+```{r}
+quick_tally(osos_df, "Vet", "Veterans")
+```
+
+### Gender
+
+```{r}
+quick_tally(osos_df, "Gender", "Active or Inactive")
+```
+
+### Education Level
+
+```{r}
+quick_tally(osos_df, "Edu..Level", "Active or Inactive")
+```
+
+### Underemployed
+
+```{r}
+quick_tally(osos_df, "Underemployed", "Active or Inactive")
+```
+<!--
+### Employment Objective
+
+```{r}
+quick_tally(osos_df, "Empl..Objective", "Active or Inactive")
+```
+
+### Desired Title
+
+```{r}
+quick_tally(osos_df, "Desired.Title", "Active or Inactive")
+```
+-->
+## Wrap Around Services
+
+```{r}
+temp <- wrap_around_df %>%
+  select(contains("100")) %>%
+  gather(Category, value) %>%
+  na.omit() %>%
+  merge(was_xwalk)
+
+grand_total <- sum(temp$value)
+```
+
+There have been `r nrow(temp)` wrap around services provided to `r max(wrap_around_df$funds_id)` unique participants.  In total there has been `r dollar(grand_total)` spent in wrap around services.  There are `r nrow(wrap_around_df)` records.
+
+### Service Category
+
+```{r}
+quick_tally(temp, "Wrap Around Service", "Wrap Around Service Category")
+```
+
+### Detailed Service Category
+
+```{r}
+quick_tally(temp, "Category", "Service Category")
+```
+
+### Total Support by Service Category as of `r str_left(str_right(wrap_around_xlsx, 15),10)`
+
+```{r}
+temp2 <- temp %>%
+  group_by(`Wrap Around Service`) %>%
+  summarise(`Total Support` = sum(value)) 
+
+grand_total2 <- temp2 %>%
+  summarise(`Total Support`  = sum(`Total Support` )) %>%
+  mutate(`Wrap Around Service` = "Grand Total", Percent = "100%")
+
+temp2%>%
+  arrange(desc(`Total Support`)) %>%
+  mutate(Percent = paste0(round(`Total Support` / grand_total * 100, 0), "%")) %>%
+  bind_rows(grand_total2) %>%
+  rename(` ` = `Wrap Around Service`) %>%
+  mutate(`Total Support` = dollar(`Total Support`)) %>%
+  pander()
+```
+
+### Total Support by Detailed Service Category
+```{r}
+grand_total2 <- grand_total2 %>%
+  rename(Category = `Wrap Around Service`)
+
+temp %>%
+  group_by(Category) %>%
+  summarise(`Total Support` = sum(value)) %>%
+  arrange(desc(`Total Support`)) %>%
+  mutate(Percent = paste0(round(`Total Support` / grand_total * 100, 0), "%")) %>%
+  bind_rows(grand_total2) %>%
+  rename(` ` = Category) %>%
+  mutate(`Total Support` = dollar(`Total Support`)) %>%
+  pander()
+```
+
+
+### Number of Wrap Around Services
+```{r}
+total <- max(wrap_around_df$funds_id)
+temp <- wrap_around_df %>%
+  group_by(Name) %>%
+  tally() %>%
+  rename(Services = n) %>%
+  group_by(Services) %>%
+  tally() %>%
+  mutate(Services = as.factor(Services),
+         Percent = round(n / total*100,0)) 
+temp %>%
+  ggplot(aes(x = Services, y = Percent, fill = Services)) +
+  geom_col() +
+  scale_fill_manual(values=c("#b30838", "#c1d2e1", "#00446a", "#feefc7", "#eaaa00", "#c6d6a7")) +
+  theme(legend.position = "none")
+```
+
+```{r}
+temp %>%
+  select(Services, Percent) %>%
+  mutate(Percent = paste0(Percent, "%")) %>%
+  pander(big.mark = ',')
+```
+<!--
+### Particpant Name
+
+```{r}
+quick_tally(wrap_around_df, "Name", "Particpant Name")
+```
+-->
+
+### Partner Name
+
+```{r}
+quick_tally(wrap_around_df, "Partner", "Partner Name")
+```
+
+### Funds per Client
+
+```{r}
+wrap_around_df %>%
+  select(`Funds per client`) %>%
+  na.omit() %>%
+  ggplot(aes(`Funds per client`)) +
+  geom_histogram(bins = 50, fill="#b20838") +
+  ylab("Participants") +
+  theme(legend.position = "none")
+```
+
+## Employer Feedback Data
+
+### General Counts
+
+* Companies: `r read_excel(employer_xlsx, sheet = "company") %>% filter(company.deleted != 1) %>% nrow()`
+* Jobs: `r read_excel(employer_xlsx, sheet = "job") %>% filter(job.deleted != 1) %>% nrow()`
+* People: `r read_excel(employer_xlsx, sheet = "person") %>% filter(person.deleted != 1) %>% nrow()`
+* Interviews: `r employer_df %>% select(application.date_referred) %>% na.omit() %>% nrow()`
+
+### Interviews
+
+#### Month Interviewed
+
+```{r}
+employer_df %>%
+  select(application.date_referred) %>%
+  na.omit() %>%
+  mutate(interviewed = format(as.Date(application.date_referred),"%Y-%m")) %>%
+  quick_tally(., "interviewed", "Date Interviewed")
+```
+<!--
+#### Participant's Name
+
+```{r}
+employer_df %>%
+  select(person.full_name, job.description) %>%
+  na.omit() %>%
+  quick_tally(., "person.full_name", "Participant's Name")
+```
+-->
+#### Partner Name
+
+```{r}
+employer_df %>%
+  select(organization.name) %>%
+  na.omit() %>%
+  quick_tally(., "organization.name", "Partner Name")
+```
+
+### Hires
+
+#### Date Hired
+
+```{r}
+temp <- employer_df %>%
+  select(application.date_hired) %>%
+  na.omit() %>%
+  mutate(hired = format(as.Date(application.date_hired),"%Y-%m")) 
+if(nrow(temp) > 0) {
+  temp %>%
+    quick_tally(., "hired", "Date Hired")
+} else {
+  cat("No data from partners")
+}
+```
+<!--
+#### Participant's Name
+
+```{r}
+employer_df %>%
+  select(person.full_name, application.date_hired) %>%
+  na.omit() %>%
+  quick_tally(., "person.full_name", "Participant's Name")
+```
+-->
+### Fully Productive
+
+```{r}
+temp <- employer_df %>%
+  select(application.date_fully_productive) %>%
+  na.omit() %>%
+  mutate(fully_productive = format(as.Date(application.date_fully_productive),"%Y-%m")) 
+if(nrow(temp) > 0) {
+  temp %>%
+    quick_tally(., "fully_productive", "Fully Productive")
+} else {
+  cat("No data from partners")
+}
+```
+
+<!--
+#### Participant's Name
+
+```{r}
+employer_df %>%
+  select(person.full_name, application.date_fully_productive) %>%
+  na.omit() %>%
+  quick_tally(., "person.full_name", "Participant's Name")
+```
+-->
+*Source Data Files*
+
+* `r employer_xlsx`
+* `r osos_csv`
+* `r wrap_around_xlsx`
