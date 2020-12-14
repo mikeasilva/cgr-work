@@ -6,6 +6,7 @@ Created on Tue Dec 31 14:31:39 2019
 """
 import pandas as pd
 import sys
+import requests
 
 # Import modules located on H:/
 sys.path.append(
@@ -266,8 +267,9 @@ print("CI_10012_US")
 acs_numerator = ["B25064_001"]
 acs_denominator = ["B25119_003"]
 temp = percent_indicator(acs_numerator, acs_denominator)
-temp["RentAfRate"] = temp["rate"]
+temp["RentAfRate"] = ((temp["count"] * 12) / temp["denominator"]) * 100
 temp["RentAfStars"] = temp["reliability"]
+#temp.to_excel("CI_10012_US.xlsx")
 temp = subset_cols(temp, cols_to_keep)
 df = pd.merge(df, temp, on="NAME")
 
@@ -295,8 +297,9 @@ print("CI_13005_US")
 acs_numerator = ["B08013_001"]
 acs_denominator = ["B08134_001"]
 temp = percent_indicator(acs_numerator, acs_denominator)
-temp["AvgTravel"] = temp["rate"]
+temp["AvgTravel"] = temp["rate"] / 100
 temp["AvgTravelStars"] = temp["reliability"]
+#temp.to_csv("CI_13005_US.csv")
 temp = subset_cols(temp, cols_to_keep)
 df = pd.merge(df, temp, on="NAME")
 
@@ -311,6 +314,16 @@ temp["NoVehStars"] = temp["reliability"]
 temp = subset_cols(temp, cols_to_keep)
 df = pd.merge(df, temp, on="NAME")
 
+# Add in GEOID Vars
+temp = requests.get("https://api.census.gov/data/2019/acs/acs5?get=NAME"+for_strings["geo_id"])
+temp = temp.json()
+cols = temp.pop(0)
+temp = pd.DataFrame(temp, columns=cols)
+temp["GEOID"] = temp["state"] + temp["county"] + temp["tract"]
+temp = temp[["NAME", "GEOID"]]
+df = pd.merge(df, temp, on="NAME")
+
 df = df[cols_to_keep].rename(columns={"NAME": "Geography"})
+
 df.to_excel("Census Tract Data.xlsx", index=False)
 
